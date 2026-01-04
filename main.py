@@ -2,48 +2,48 @@ import discord
 from discord.ext import tasks, commands
 import importlib
 import os
+import datetime
+import pytz
 from dotenv import load_dotenv
 import core_system
 
 load_dotenv()
+JST = pytz.timezone('Asia/Tokyo')
 
 class TakasumiAuxiliaryBot(commands.Bot):
     def __init__(self):
-        # 全てのIntentを有効化（work検知に必要）
         super().__init__(command_prefix='/', intents=discord.Intents.all())
 
     async def setup_hook(self):
-        # 初回登録
+        # 起動時の初期化とコマンド同期をcore_systemに委譲
         core_system.register_to_tree(self)
         await core_system.init_system(self)
         self.check_timer_loop.start()
 
     @tasks.loop(seconds=30)
     async def check_timer_loop(self):
-        """30秒ごとにcore_systemをリロードして監視を実行"""
+        """監視ループ（自動更新を含む）"""
         try:
             importlib.reload(core_system)
             await core_system.check_reminders(self)
         except Exception as e:
-            print(f"[Main Loop Error] {e}")
+            print(f"Loop Error: {e}")
 
     async def on_message(self, message):
-        """メッセージ受信時も常に最新のロジックで判定"""
+        """メッセージ受信イベントをcore_systemへ転送"""
         if message.author == self.user:
             return
-        
-        try:
-            importlib.reload(core_system)
-            await core_system.process_message_event(self, message)
-            await self.process_commands(message)
-        except Exception as e:
-            print(f"[Main Message Error] {e}")
+        importlib.reload(core_system)
+        await core_system.process_message_event(self, message)
+        await self.process_commands(message)
 
 bot = TakasumiAuxiliaryBot()
+
+@bot.event
+async def on_ready():
+    now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
+    print(f"【{now}】{bot.user.name}としてログインしました")
 
 token = os.getenv('DISCORD_TOKEN')
 if token:
     bot.run(token)
-else:
-    print("Error: DISCORD_TOKEN not found in .env file.")
-    
