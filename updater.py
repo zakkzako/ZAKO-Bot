@@ -41,3 +41,4 @@ async def perform_full_update(target_modules):
         print(f"[Updater] 予期せぬエラーが発生しました: {e}")
         
     return False # 更新なし、または失敗
+
