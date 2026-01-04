@@ -1,11 +1,9 @@
 import discord
 from discord.ext import tasks, commands
-import importlib
 import os
 from dotenv import load_dotenv
 import core_system
 
-# .envファイルを読み込み
 load_dotenv()
 
 class TakasumiAuxiliaryBot(commands.Bot):
@@ -19,7 +17,8 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
     @tasks.loop(seconds=30)
     async def check_timer_loop(self):
-        importlib.reload(core_system)
+        # core_system自体のリロードはせず、内部のロジック(check_reminders)を呼び出す
+        # work.pyなどの更新は core_system 内の updater が担当します
         await core_system.check_reminders(self)
 
     async def on_message(self, message):
@@ -28,7 +27,6 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
 bot = TakasumiAuxiliaryBot()
 
-# 環境変数からトークンを取得して起動
 token = os.getenv('DISCORD_TOKEN')
 if token:
     bot.run(token)
