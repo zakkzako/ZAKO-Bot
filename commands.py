@@ -4,46 +4,50 @@ import json
 import os
 import importlib
 import work
+import jikoku
 
 # 管理者IDの取得
 admin_id_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
 
-class AdminCommands(app_commands.Group):
-    def __init__(self, name="admin", description="管理者用コマンド"):
-        super().__init__(name=name, description=description)
-
-    @app_commands.command(name="reload", description="各モジュールを再読み込みします")
-    async def reload(self, interaction: discord.Interaction):
-        if interaction.user.id not in ADMIN_IDS:
-            await interaction.response.send_message("権限がありません", ephemeral=True)
-            return
-        
+@app_commands.command(name="admin_reload", description="最新のファイルを読み込みます(Git更新後)")
+async def admin_reload(interaction: discord.Interaction):
+    if interaction.user.id not in ADMIN_IDS:
+        await interaction.response.send_message("権限がありません", ephemeral=True)
+        return
+    
+    # ここで各モジュールを手動リロード
+    try:
         importlib.reload(work)
-        # 他のモジュールも必要に応じてリロード
-        await interaction.response.send_message("モジュールの再読み込みが完了しました", ephemeral=True)
+        importlib.reload(jikoku)
+        # core_systemは自分自身(commands)を呼び出しているため、慎重にリロードが必要
+        await interaction.response.send_message("すべてのモジュールを最新の状態に更新しました。", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"リロードエラー: {e}", ephemeral=True)
 
-    @app_commands.command(name="jikoku", description="時報を送るチャンネルを現在のチャンネルに設定します")
-    async def jikoku(self, interaction: discord.Interaction):
-        if interaction.user.id not in ADMIN_IDS:
-            await interaction.response.send_message("権限がありません", ephemeral=True)
-            return
+@app_commands.command(name="admin_jikoku", description="時報を送るチャンネルをここに設定します")
+async def admin_jikoku(interaction: discord.Interaction):
+    if interaction.user.id not in ADMIN_IDS:
+        await interaction.response.send_message("権限がありません", ephemeral=True)
+        return
 
-        config = {}
-        if os.path.exists("config.json"):
-            with open("config.json", "r") as f:
-                try: config = json.load(f)
-                except: config = {}
+    config = {}
+    if os.path.exists("config.json"):
+        with open("config.json", "r") as f:
+            try: config = json.load(f)
+            except: config = {}
 
-        config["announcement_channel"] = interaction.channel_id
+    config["announcement_channel"] = interaction.channel_id
 
-        with open("config.json", "w") as f:
-            json.dump(config, f, indent=4)
+    with open("config.json", "w") as f:
+        json.dump(config, f, indent=4)
 
-        await interaction.response.send_message(f"このチャンネル({interaction.channel.name})を時報チャンネルに設定しました", ephemeral=True)
+    await interaction.response.send_message(f"時報チャンネルを {interaction.channel.name} に設定しました。", ephemeral=True)
 
 def setup_admin_commands(bot):
-    """Adminコマンドグループを登録"""
-    # 既存のadminコマンドと重複しないように登録
-    if not any(cmd.name == "admin" for cmd in bot.tree.get_commands()):
-        bot.tree.add_command(AdminCommands())
+    """単体コマンドとして登録"""
+    # 既存の同名コマンドがなければ追加
+    if not any(cmd.name == "admin_reload" for cmd in bot.tree.get_commands()):
+        bot.tree.add_command(admin_reload)
+    if not any(cmd.name == "admin_jikoku" for cmd in bot.tree.get_commands()):
+        bot.tree.add_command(admin_jikoku)
