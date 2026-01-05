@@ -57,9 +57,12 @@ async def process_message_event(bot, message):
             desc = embed.description or ""
             fields_text = "".join([f.value for f in embed.fields])
             if "給料:" in desc or "給料:" in fields_text:
+                importlib.reload(work)
                 await work.handle_work_detection(bot, message, embed)
 
 def register_to_tree(bot):
-    commands.setup_admin_commands(bot)
- Registration Error: {e}")
-
+    try:
+        importlib.reload(commands)
+        commands.setup_admin_commands(bot)
+    except Exception as e:
+        print(f"Registration Error: {e}")
