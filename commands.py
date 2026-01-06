@@ -6,7 +6,7 @@ import importlib
 import work
 import jikoku
 import time
-import economy # 追加：config.jsonの操作用
+import economy
 
 admin_id_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
@@ -28,13 +28,9 @@ async def admin_reload(interaction: discord.Interaction):
         importlib.reload(core_system)
         importlib.reload(work)
         importlib.reload(jikoku)
-        importlib.reload(economy) # 追加：経済ロジックのリロード
-        
-        # 自身を含むスラッシュコマンドの再登録
+        importlib.reload(economy)
         core_system.register_to_tree(interaction.client)
-        
-        await interaction.response.send_message("リロードが完了しました。システムファイルは再起動なしで更新されました。", ephemeral=True)
-        print(f"[{jikoku.get_jst_now()}] [Admin] System reloaded by {interaction.user}") # 日本時刻でログ [cite: 2026-01-03]
+        await interaction.response.send_message("リロードが完了しました。", ephemeral=True)
     except Exception as e:
         await interaction.response.send_message(f"エラー: {e}", ephemeral=True)
 
@@ -43,33 +39,35 @@ async def admin_jikoku(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_IDS:
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    
-    config = economy.load_json("config.json", {}) # economyモジュールの関数で統一
+    config = economy.load_json("config.json", {})
     config["announcement_channel"] = interaction.channel_id
     economy.save_json("config.json", config)
-    
     await interaction.response.send_message(f"時報チャンネルを設定しました", ephemeral=True)
 
 @app_commands.command(name="admin_log", description="【管理者用】申請ログチャンネルを設定します")
 async def admin_log(interaction: discord.Interaction):
-    """経済システムのログチャンネル設定を追加"""
     if interaction.user.id not in ADMIN_IDS:
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    
     config = economy.load_json("config.json", {})
     config["log_channel"] = interaction.channel_id
     economy.save_json("config.json", config)
-    
     await interaction.response.send_message(f"✅ 申請ログチャンネルを設定しました", ephemeral=True)
 
+@app_commands.command(name="admin_issue", description="【管理者用】指定したユーザーにECを発行します")
+async def admin_issue(interaction: discord.Interaction, user: discord.Member, amount: float):
+    if interaction.user.id not in ADMIN_IDS:
+        await interaction.response.send_message("権限がありません", ephemeral=True)
+        return
+    new_rate = economy.confirm_buy_issue(user.id, amount)
+    await interaction.response.send_message(f"✅ {user.mention} に {amount} EC を発行しました。新レート: {new_rate:.4f}")
+
 def setup_admin_commands(bot):
-    # 重複登録を避けて単体コマンドを追加
     existing = [cmd.name for cmd in bot.tree.get_commands()]
-    cmds = [ping, admin_reload, admin_jikoku, admin_log] # admin_logを追加
-    
+    cmds = [ping, admin_reload, admin_jikoku, admin_log, admin_issue]
     for cmd in cmds:
         if cmd.name not in existing:
             bot.tree.add_command(cmd)
+
 
 
