@@ -1,49 +1,50 @@
 import discord
-from discord.ext import tasks, commands
-import importlib
+from discord.ext import commands
 import os
-import datetime
-import pytz
-from dotenv import load_dotenv
 import core_system
+from dotenv import load_dotenv
 
+# .envファイルから環境変数を読み込む（DISCORD_TOKEN, ADMIN_IDなど）
 load_dotenv()
-JST = pytz.timezone('Asia/Tokyo')
 
-class TakasumiAuxiliaryBot(commands.Bot):
-    def __init__(self):
-        super().__init__(command_prefix='/', intents=discord.Intents.all())
+# インテントの設定
+intents = discord.Intents.default()
+intents.message_content = True # メッセージ内容の取得に必要
+intents.members = True         # メンバー情報の取得に必要
+intents.reactions = True       # リアクション（✅）の検知に必須
 
-    async def setup_hook(self):
-        # 起動時の初期化とコマンド同期をcore_systemに委譲
-        core_system.register_to_tree(self)
-        await core_system.init_system(self)
-        self.check_timer_loop.start()
-
-    @tasks.loop(seconds=30)
-    async def check_timer_loop(self):
-        """監視ループ（自動更新を含む）"""
-        try:
-            importlib.reload(core_system)
-            await core_system.check_reminders(self)
-        except Exception as e:
-            print(f"Loop Error: {e}")
-
-    async def on_message(self, message):
-        """メッセージ受信イベントをcore_systemへ転送"""
-        if message.author == self.user:
-            return
-        importlib.reload(core_system)
-        await core_system.process_message_event(self, message)
-        await self.process_commands(message)
-
-bot = TakasumiAuxiliaryBot()
+# Botのインスタンス作成
+bot = commands.Bot(command_prefix="/", intents=intents)
 
 @bot.event
 async def on_ready():
-    now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
-    print(f"【{now}】{bot.user.name}としてログインしました")
+    """Botが起動した際の処理"""
+    print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+    
+    # スラッシュコマンドの登録と同期
+    core_system.register_to_tree(bot)
+    await core_system.init_system(bot)
+    
+    print("--- Bot is ready ---")
 
+@bot.event
+async def on_message(message):
+    """メッセージを受信した際の処理"""
+    # work検知などのイベント処理
+    await core_system.process_message_event(bot, message)
+    
+    # 通常のコマンド処理
+    await bot.process_commands(message)
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    """リアクションが追加された際の処理（換金・購入の承認用）"""
+    # core_system側の経済確定ロジックを呼び出す
+    await core_system.handle_reaction_event(bot, payload)
+
+# Botの起動
 token = os.getenv('DISCORD_TOKEN')
 if token:
     bot.run(token)
+else:
+    print("Error: DISCORD_TOKEN が設定されていません。")
