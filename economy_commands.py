@@ -9,6 +9,9 @@ import os
 
 JST = pytz.timezone('Asia/Tokyo')
 
+# Notification type constants
+NOTIFICATION_TYPE_WORK = 'work'
+
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECと本家マネー換算額を確認します")
 async def money(interaction: discord.Interaction):
@@ -42,7 +45,7 @@ async def ec_work(interaction: discord.Interaction):
             'channel_id': interaction.channel_id,
             'target_time': target_time.isoformat(),
             'cooldown_min': 20,
-            'notification_type': 'work'
+            'notification_type': NOTIFICATION_TYPE_WORK
         }
         
         queue = []
@@ -50,13 +53,13 @@ async def ec_work(interaction: discord.Interaction):
             with open("reminders.json", "r") as f:
                 try: 
                     queue = json.load(f)
-                except (json.JSONDecodeError, ValueError): 
+                except json.JSONDecodeError: 
                     queue = []
         
         # 同じユーザー&通知タイプの既存予約を削除（重複防止）
         queue = [
             r for r in queue 
-            if not (r.get('user_id') == interaction.user.id and r.get('notification_type') == 'work')
+            if not (r.get('user_id') == interaction.user.id and r.get('notification_type') == NOTIFICATION_TYPE_WORK)
         ]
         queue.append(new_data)
         

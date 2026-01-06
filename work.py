@@ -7,6 +7,9 @@ import os
 
 JST = pytz.timezone('Asia/Tokyo')
 
+# Notification type constants
+NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
+
 # 職業データはそのまま維持
 JOB_MAP = {
     "none": {"name": "無職", "time": 10, "base": 100, "bonus": 0},
@@ -58,7 +61,7 @@ async def handle_work_detection(bot, message, embed):
         'channel_id': message.channel.id,
         'target_time': target_time.isoformat(),
         'cooldown_min': cd_min,
-        'notification_type': 'external_work'
+        'notification_type': NOTIFICATION_TYPE_EXTERNAL_WORK
     }
     
     queue = []

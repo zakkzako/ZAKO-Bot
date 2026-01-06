@@ -16,6 +16,10 @@ JST = pytz.timezone('Asia/Tokyo')
 admin_id_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
 
+# Notification type constants
+NOTIFICATION_TYPE_WORK = 'work'
+NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
+
 async def init_system(bot):
     try: await bot.tree.sync()
     except Exception as e: print(f"Sync Error: {e}")
@@ -39,8 +43,8 @@ async def check_reminders(bot):
             user = bot.get_user(r['user_id'])
             if channel and user:
                 try: 
-                    notification_type = r.get('notification_type', 'external_work')
-                    if notification_type == 'work':
+                    notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
+                    if notification_type == NOTIFICATION_TYPE_WORK:
                         # 内部workコマンドの通知
                         await channel.send(f"{user.mention} workから20分が経過しました。再度 `/work` を実行できます！")
                     else:
