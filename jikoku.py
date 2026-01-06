@@ -35,13 +35,8 @@ async def announce_time(bot):
         
         channel = bot.get_channel(channel_id)
         if channel:
-            # 午前/午後の判定
-            period = "午前" if now.hour < 12 else "午後"
-            # 12時間制の時間を取得
-            hour_12 = now.hour % 12
-            if hour_12 == 0: hour_12 = 12
-            
-            msg = f"{period}{hour_12}時をお知らせします"
+            # 24時間制で表示
+            msg = f"{now.hour}時をお知らせします"
             try:
                 await channel.send(msg)
                 # 送信成功後、この時刻を記録
