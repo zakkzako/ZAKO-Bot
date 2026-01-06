@@ -7,7 +7,10 @@ import work
 import jikoku
 import time
 import economy
+import datetime
+import pytz
 
+JST = pytz.timezone('Asia/Tokyo')
 admin_id_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
 
@@ -29,10 +32,20 @@ async def admin_reload(interaction: discord.Interaction):
         importlib.reload(work)
         importlib.reload(jikoku)
         importlib.reload(economy)
+        
+        # core_system 側の register_to_tree を通じて全体を再登録
         core_system.register_to_tree(interaction.client)
-        await interaction.response.send_message("リロードが完了しました。", ephemeral=True)
+        
+        now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
+        await interaction.response.send_message(f"✅ リロード完了 ({now})", ephemeral=True)
+        print(f"【{now}】[Admin] System reloaded by {interaction.user}")
     except Exception as e:
-        await interaction.response.send_message(f"エラー: {e}", ephemeral=True)
+        print(f"Reload Error: {e}")
+        # すでに一度応答している可能性を考慮して try-except
+        try:
+            await interaction.response.send_message(f"❌ エラーが発生しました: {e}", ephemeral=True)
+        except:
+            pass
 
 @app_commands.command(name="admin_jikoku", description="時報チャンネルを設定します")
 async def admin_jikoku(interaction: discord.Interaction):
@@ -59,6 +72,7 @@ async def admin_issue(interaction: discord.Interaction, user: discord.Member, am
     if interaction.user.id not in ADMIN_IDS:
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
+    # 発行処理
     new_rate = economy.confirm_buy_issue(user.id, amount)
     await interaction.response.send_message(f"✅ {user.mention} に {amount} EC を発行しました。新レート: {new_rate:.4f}")
 
@@ -68,6 +82,3 @@ def setup_admin_commands(bot):
     for cmd in cmds:
         if cmd.name not in existing:
             bot.tree.add_command(cmd)
-
-
-
