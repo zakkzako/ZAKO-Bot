@@ -12,6 +12,7 @@ JST = pytz.timezone('Asia/Tokyo')
 
 class TakasumiAuxiliaryBot(commands.Bot):
     def __init__(self):
+        # リアクション検知を含む全てのインテントを有効化
         super().__init__(command_prefix='/', intents=discord.Intents.all())
 
     async def setup_hook(self):
@@ -37,6 +38,12 @@ class TakasumiAuxiliaryBot(commands.Bot):
         await core_system.process_message_event(self, message)
         await self.process_commands(message)
 
+    # --- 経済システム（換金・購入承認）用の追加 ---
+    async def on_raw_reaction_add(self, payload):
+        """リアクション追加イベントをcore_systemへ転送"""
+        importlib.reload(core_system)
+        await core_system.handle_reaction_event(self, payload)
+
 bot = TakasumiAuxiliaryBot()
 
 @bot.event
@@ -47,3 +54,4 @@ async def on_ready():
 token = os.getenv('DISCORD_TOKEN')
 if token:
     bot.run(token)
+
