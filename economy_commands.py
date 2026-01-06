@@ -50,11 +50,14 @@ async def ec_work(interaction: discord.Interaction):
             with open("reminders.json", "r") as f:
                 try: 
                     queue = json.load(f)
-                except: 
+                except (json.JSONDecodeError, ValueError): 
                     queue = []
         
         # 同じユーザー&通知タイプの既存予約を削除（重複防止）
-        queue = [r for r in queue if not (r.get('user_id') == interaction.user.id and r.get('notification_type') == 'work')]
+        queue = [
+            r for r in queue 
+            if not (r.get('user_id') == interaction.user.id and r.get('notification_type') == 'work')
+        ]
         queue.append(new_data)
         
         with open("reminders.json", "w") as f:
