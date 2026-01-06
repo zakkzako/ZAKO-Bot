@@ -68,7 +68,7 @@ async def handle_work_detection(bot, message, embed):
     if os.path.exists("reminders.json"):
         with open("reminders.json", "r") as f:
             try: queue = json.load(f)
-            except: queue = []
+            except json.JSONDecodeError: queue = []
     
     queue.append(new_data)
     with open("reminders.json", "w") as f:

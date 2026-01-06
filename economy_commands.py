@@ -11,6 +11,7 @@ JST = pytz.timezone('Asia/Tokyo')
 
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
+WORK_COOLDOWN_MINUTES = 20
 
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECと本家マネー換算額を確認します")
@@ -36,15 +37,15 @@ async def ec_work(interaction: discord.Interaction):
     else:
         min_left = int(res.total_seconds() // 60)
         
-        # 通知予約を登録（20分後）
+        # 通知予約を登録
         now = datetime.datetime.now(JST)
-        target_time = now + datetime.timedelta(minutes=20)
+        target_time = now + datetime.timedelta(minutes=WORK_COOLDOWN_MINUTES)
         
         new_data = {
             'user_id': interaction.user.id,
             'channel_id': interaction.channel_id,
             'target_time': target_time.isoformat(),
-            'cooldown_min': 20,
+            'cooldown_min': WORK_COOLDOWN_MINUTES,
             'notification_type': NOTIFICATION_TYPE_WORK
         }
         
@@ -68,7 +69,7 @@ async def ec_work(interaction: discord.Interaction):
         
         await interaction.response.send_message(
             f"☕ 休憩中... あと {min_left}分 お待ちください。\n"
-            f"20分後にこのチャンネルで通知します。",
+            f"{WORK_COOLDOWN_MINUTES}分後にこのチャンネルで通知します。",
             ephemeral=True
         )
 
