@@ -9,24 +9,24 @@ import work
 import updater
 import jikoku
 import commands
+import economy          # 追加：経済ロジック
+import economy_commands # 追加：経済コマンド
 
 JST = pytz.timezone('Asia/Tokyo')
+admin_id_env = os.getenv('ADMIN_ID')
+ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
 
 async def init_system(bot):
-    try: 
-        await bot.tree.sync()
-        print("【System】コマンド同期完了")
-    except Exception as e: 
-        print(f"Sync Error: {e}")
+    try: await bot.tree.sync()
+    except Exception as e: print(f"Sync Error: {e}")
 
 async def check_reminders(bot):
-    # 引数は「なし」で呼び出す
+    # ダウンロードのみ行う（手動リロード仕様）
     await updater.perform_full_update()
 
-    try:
-        await jikoku.announce_time(bot)
-    except Exception as e:
-        print(f"Jikoku Error: {e}")
+    # 時報機能
+    try: await jikoku.announce_time(bot)
+    except Exception as e: print(f"Jikoku Error: {e}")
 
     now = datetime.datetime.now(JST)
     if not os.path.exists("reminders.json"): return
@@ -42,8 +42,7 @@ async def check_reminders(bot):
             channel = bot.get_channel(r.get('channel_id'))
             user = bot.get_user(r['user_id'])
             if channel and user:
-                try:
-                    await channel.send(f"{user.mention} workから{r['cooldown_min']}分が経過しました。workが再度実行できます")
+                try: await channel.send(f"{user.mention} workから{r['cooldown_min']}分が経過しました。workが再度実行できます")
                 except: pass
             continue
         updated_queue.append(r)
@@ -60,9 +59,46 @@ async def process_message_event(bot, message):
                 importlib.reload(work)
                 await work.handle_work_detection(bot, message, embed)
 
+# --- ここから経済システムのリアクション検知 ---
+async def handle_reaction_event(bot, payload):
+    # 管理者が ✅ を押したかチェック
+    if payload.user_id not in ADMIN_IDS or str(payload.emoji) != "✅":
+        return
+
+    channel = bot.get_channel(payload.channel_id)
+    try:
+        message = await channel.fetch_message(payload.message_id)
+    except: return
+
+    if not (message.author.id == bot.user.id and message.embeds): return
+    
+    embed = message.embeds[0]
+    # ユーザーIDをメンション（<@ID>）から抽出
+    try:
+        user_mention = embed.fields[0].value
+        user_id = int(user_mention.replace("<@", "").replace(">", "").replace("!", ""))
+        amount = float(embed.fields[1].value.split(" ")[0])
+
+        if embed.title == "💰 換金申請":
+            new_rate = economy.confirm_exchange_burn(amount)
+            await message.edit(content=f"✅ **換金完了** (レートが上昇しました: {new_rate:.4f})", embed=None)
+            print(f"[Economy] Exchange confirmed for {user_id}. Amount: {amount}")
+        
+        elif embed.title == "💎 EC購入申請":
+            new_rate = economy.confirm_buy_issue(user_id, amount)
+            await message.edit(content=f"✅ **購入完了** (レートが低下しました: {new_rate:.4f})", embed=None)
+            print(f"[Economy] Buy confirmed for {user_id}. Amount: {amount}")
+    except Exception as e:
+        print(f"Reaction Process Error: {e}")
+# --- ここまで ---
+
 def register_to_tree(bot):
     try:
+        # 各ファイルをリロードしてコマンドを最新の状態にする
         importlib.reload(commands)
+        importlib.reload(economy_commands) 
         commands.setup_admin_commands(bot)
+        economy_commands.setup_economy_commands(bot)
+        print("Commands and Economy modules reloaded.")
     except Exception as e:
         print(f"Registration Error: {e}")
