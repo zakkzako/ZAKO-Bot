@@ -2,6 +2,12 @@ import discord
 from discord import app_commands
 import economy
 import aiohttp
+import datetime
+import pytz
+import json
+import os
+
+JST = pytz.timezone('Asia/Tokyo')
 
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECと本家マネー換算額を確認します")
@@ -26,7 +32,39 @@ async def ec_work(interaction: discord.Interaction):
         await interaction.response.send_message(f"⛏ **{res} EC** を獲得しました！")
     else:
         min_left = int(res.total_seconds() // 60)
-        await interaction.response.send_message(f"☕ 休憩中... あと {min_left}分 お待ちください。", ephemeral=True)
+        
+        # 通知予約を登録（20分後）
+        now = datetime.datetime.now(JST)
+        target_time = now + datetime.timedelta(minutes=20)
+        
+        new_data = {
+            'user_id': interaction.user.id,
+            'channel_id': interaction.channel_id,
+            'target_time': target_time.isoformat(),
+            'cooldown_min': 20,
+            'notification_type': 'work'
+        }
+        
+        queue = []
+        if os.path.exists("reminders.json"):
+            with open("reminders.json", "r") as f:
+                try: 
+                    queue = json.load(f)
+                except: 
+                    queue = []
+        
+        # 同じユーザー&通知タイプの既存予約を削除（重複防止）
+        queue = [r for r in queue if not (r.get('user_id') == interaction.user.id and r.get('notification_type') == 'work')]
+        queue.append(new_data)
+        
+        with open("reminders.json", "w") as f:
+            json.dump(queue, f, indent=4)
+        
+        await interaction.response.send_message(
+            f"☕ 休憩中... あと {min_left}分 お待ちください。\n"
+            f"20分後にこのチャンネルで通知します。",
+            ephemeral=True
+        )
 
 @app_commands.command(name="exchange", description="ECを本家マネーに換金申請します")
 async def exchange(interaction: discord.Interaction, amount: float):

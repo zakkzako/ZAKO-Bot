@@ -57,7 +57,8 @@ async def handle_work_detection(bot, message, embed):
         'user_id': user.id,
         'channel_id': message.channel.id,
         'target_time': target_time.isoformat(),
-        'cooldown_min': cd_min
+        'cooldown_min': cd_min,
+        'notification_type': 'external_work'
     }
     
     queue = []

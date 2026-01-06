@@ -38,7 +38,14 @@ async def check_reminders(bot):
             channel = bot.get_channel(r.get('channel_id'))
             user = bot.get_user(r['user_id'])
             if channel and user:
-                try: await channel.send(f"{user.mention} workから{r['cooldown_min']}分が経過しました。workが再度実行できます")
+                try: 
+                    notification_type = r.get('notification_type', 'external_work')
+                    if notification_type == 'work':
+                        # 内部workコマンドの通知
+                        await channel.send(f"{user.mention} workから20分が経過しました。再度 `/work` を実行できます！")
+                    else:
+                        # 外部bot（Takasumi）のwork検知による通知
+                        await channel.send(f"{user.mention} workから{r['cooldown_min']}分が経過しました。workが再度実行できます")
                 except: pass
             continue
         updated_queue.append(r)
