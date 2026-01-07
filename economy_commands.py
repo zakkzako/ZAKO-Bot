@@ -13,6 +13,53 @@ JST = pytz.timezone('Asia/Tokyo')
 NOTIFICATION_TYPE_WORK = 'work'
 WORK_COOLDOWN_MINUTES = 20
 
+def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
+    """
+    Helper function to schedule work notifications
+    
+    Args:
+        user_id: Discord user ID
+        channel_id: Discord channel ID
+        cooldown_minutes: Minutes until notification should be sent
+        context: Context for error logging ('success' or 'cooldown')
+    """
+    try:
+        now = datetime.datetime.now(JST)
+        target_time = now + datetime.timedelta(minutes=cooldown_minutes)
+
+        new_data = {
+            'user_id': user_id,
+            'channel_id': channel_id,
+            'target_time': target_time.isoformat(),
+            'cooldown_min': cooldown_minutes,
+            'notification_type': NOTIFICATION_TYPE_WORK
+        }
+
+        queue = []
+        if os.path.exists("reminders.json"):
+            with open("reminders.json", "r") as f:
+                try:
+                    queue = json.load(f)
+                except json.JSONDecodeError:
+                    queue = []
+
+        # 重複防止
+        queue = [
+            r for r in queue
+            if not (
+                r.get('user_id') == user_id and
+                r.get('notification_type') == NOTIFICATION_TYPE_WORK
+            )
+        ]
+
+        queue.append(new_data)
+
+        with open("reminders.json", "w") as f:
+            json.dump(queue, f, indent=4)
+    except (OSError, json.JSONDecodeError) as e:
+        # 通知スケジューリングの失敗は無視し、メイン機能に影響を与えない
+        print(f"Failed to schedule {context} notification for user {user_id}: {e}")
+
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECと本家マネー換算額を確認します")
 async def money(interaction: discord.Interaction):
@@ -40,85 +87,25 @@ async def ec_work(interaction: discord.Interaction):
             f"{WORK_COOLDOWN_MINUTES}分後に `/work` が再度利用可能になったタイミングで通知を送ります。"
         )
 
-        # ===== タイマー開始 =====
-        try:
-            now = datetime.datetime.now(JST)
-            target_time = now + datetime.timedelta(minutes=WORK_COOLDOWN_MINUTES)
-
-            new_data = {
-                'user_id': interaction.user.id,
-                'channel_id': interaction.channel_id,
-                'target_time': target_time.isoformat(),
-                'cooldown_min': WORK_COOLDOWN_MINUTES,
-                'notification_type': NOTIFICATION_TYPE_WORK
-            }
-
-            queue = []
-            if os.path.exists("reminders.json"):
-                with open("reminders.json", "r") as f:
-                    try:
-                        queue = json.load(f)
-                    except json.JSONDecodeError:
-                        queue = []
-
-            # 重複防止
-            queue = [
-                r for r in queue
-                if not (
-                    r.get('user_id') == interaction.user.id and
-                    r.get('notification_type') == NOTIFICATION_TYPE_WORK
-                )
-            ]
-
-            queue.append(new_data)
-
-            with open("reminders.json", "w") as f:
-                json.dump(queue, f, indent=4)
-        except (OSError, json.JSONDecodeError) as e:
-            # 通知スケジューリングの失敗は無視し、メイン機能に影響を与えない
-            print(f"Failed to schedule notification for user {interaction.user.id}: {e}")
+        # 通知をスケジュール
+        _schedule_work_notification(
+            interaction.user.id,
+            interaction.channel_id,
+            WORK_COOLDOWN_MINUTES,
+            'success'
+        )
 
     else:
         # クールダウン中 - 残り時間で通知をスケジュール
         min_left = int(res.total_seconds() // 60)
         
-        # クールダウン終了時に通知をスケジュール
-        try:
-            now = datetime.datetime.now(JST)
-            target_time = now + datetime.timedelta(minutes=min_left)
-
-            new_data = {
-                'user_id': interaction.user.id,
-                'channel_id': interaction.channel_id,
-                'target_time': target_time.isoformat(),
-                'cooldown_min': min_left,
-                'notification_type': NOTIFICATION_TYPE_WORK
-            }
-
-            queue = []
-            if os.path.exists("reminders.json"):
-                with open("reminders.json", "r") as f:
-                    try:
-                        queue = json.load(f)
-                    except json.JSONDecodeError:
-                        queue = []
-
-            # 重複防止
-            queue = [
-                r for r in queue
-                if not (
-                    r.get('user_id') == interaction.user.id and
-                    r.get('notification_type') == NOTIFICATION_TYPE_WORK
-                )
-            ]
-
-            queue.append(new_data)
-
-            with open("reminders.json", "w") as f:
-                json.dump(queue, f, indent=4)
-        except (OSError, json.JSONDecodeError) as e:
-            # 通知スケジューリングの失敗は無視し、メイン機能に影響を与えない
-            print(f"Failed to schedule notification for user {interaction.user.id}: {e}")
+        # 通知をスケジュール
+        _schedule_work_notification(
+            interaction.user.id,
+            interaction.channel_id,
+            min_left,
+            'cooldown'
+        )
 
         await interaction.response.send_message(
             f"☕ 休憩中... あと {min_left}分 お待ちください。\n"
