@@ -50,7 +50,7 @@ async def check_reminders(bot):
                         await channel.send(f"{user.mention} workから{WORK_COOLDOWN_MINUTES}分が経過しました。再度 `/work` を実行できます！")
                     else:
                         # 外部bot（Takasumi）のwork検知による通知
-                        await channel.send(f"{user.mention} workから{r['cooldown_min']}分が経過しました。workが再度実行できます")
+                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。workが再度実行できます")
                 except Exception as e:
                     print(f"Notification send error: {e}")
             continue
