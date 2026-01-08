@@ -7,6 +7,9 @@ import os
 
 JST = pytz.timezone('Asia/Tokyo')
 
+# Notification type constants
+NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
+
 # 職業データはそのまま維持
 JOB_MAP = {
     "none": {"name": "無職", "time": 10, "base": 100, "bonus": 0},
@@ -57,14 +60,15 @@ async def handle_work_detection(bot, message, embed):
         'user_id': user.id,
         'channel_id': message.channel.id,
         'target_time': target_time.isoformat(),
-        'cooldown_min': cd_min
+        'cooldown_min': cd_min,
+        'notification_type': NOTIFICATION_TYPE_EXTERNAL_WORK
     }
     
     queue = []
     if os.path.exists("reminders.json"):
         with open("reminders.json", "r") as f:
             try: queue = json.load(f)
-            except: queue = []
+            except json.JSONDecodeError: queue = []
     
     queue.append(new_data)
     with open("reminders.json", "w") as f:

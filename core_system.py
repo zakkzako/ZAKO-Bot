@@ -16,6 +16,11 @@ JST = pytz.timezone('Asia/Tokyo')
 admin_id_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
 
+# Notification type constants
+NOTIFICATION_TYPE_WORK = 'work'
+NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
+WORK_COOLDOWN_MINUTES = 20
+
 async def init_system(bot):
     try: await bot.tree.sync()
     except Exception as e: print(f"Sync Error: {e}")
@@ -29,7 +34,7 @@ async def check_reminders(bot):
     if not os.path.exists("reminders.json"): return
     with open("reminders.json", "r") as f:
         try: queue = json.load(f)
-        except: queue = []
+        except json.JSONDecodeError: queue = []
 
     updated_queue = []
     for r in queue:
@@ -38,8 +43,16 @@ async def check_reminders(bot):
             channel = bot.get_channel(r.get('channel_id'))
             user = bot.get_user(r['user_id'])
             if channel and user:
-                try: await channel.send(f"{user.mention} workから{r['cooldown_min']}分が経過しました。workが再度実行できます")
-                except: pass
+                try: 
+                    notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
+                    if notification_type == NOTIFICATION_TYPE_WORK:
+                        # 内部workコマンドの通知
+                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。再度 `/work` を実行できます！")
+                    else:
+                        # 外部bot（Takasumi）のwork検知による通知
+                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。workが再度実行できます")
+                except Exception as e:
+                    print(f"Notification send error: {e}")
             continue
         updated_queue.append(r)
     with open("reminders.json", "w") as f:

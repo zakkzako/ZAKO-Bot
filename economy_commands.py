@@ -2,6 +2,63 @@ import discord
 from discord import app_commands
 import economy
 import aiohttp
+import datetime
+import pytz
+import json
+import os
+
+JST = pytz.timezone('Asia/Tokyo')
+
+# Notification type constants
+NOTIFICATION_TYPE_WORK = 'work'
+WORK_COOLDOWN_MINUTES = 20
+
+def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
+    """
+    Helper function to schedule work notifications
+    
+    Args:
+        user_id: Discord user ID
+        channel_id: Discord channel ID
+        cooldown_minutes: Minutes until notification should be sent
+        context: Context for error logging ('success' or 'cooldown')
+    """
+    try:
+        now = datetime.datetime.now(JST)
+        target_time = now + datetime.timedelta(minutes=cooldown_minutes)
+
+        new_data = {
+            'user_id': user_id,
+            'channel_id': channel_id,
+            'target_time': target_time.isoformat(),
+            'cooldown_min': cooldown_minutes,
+            'notification_type': NOTIFICATION_TYPE_WORK
+        }
+
+        queue = []
+        if os.path.exists("reminders.json"):
+            with open("reminders.json", "r") as f:
+                try:
+                    queue = json.load(f)
+                except json.JSONDecodeError:
+                    queue = []
+
+        # 重複防止
+        queue = [
+            r for r in queue
+            if not (
+                r.get('user_id') == user_id and
+                r.get('notification_type') == NOTIFICATION_TYPE_WORK
+            )
+        ]
+
+        queue.append(new_data)
+
+        with open("reminders.json", "w") as f:
+            json.dump(queue, f, indent=4)
+    except (OSError, json.JSONDecodeError) as e:
+        # 通知スケジューリングの失敗は無視し、メイン機能に影響を与えない
+        print(f"Failed to schedule {context} notification for user {user_id}: {e}")
 
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECと本家マネー換算額を確認します")
@@ -22,11 +79,39 @@ async def rate(interaction: discord.Interaction):
 @app_commands.command(name="work", description="ECを獲得します（20分に1回）")
 async def ec_work(interaction: discord.Interaction):
     success, res = economy.process_work(interaction.user.id)
+
     if success:
-        await interaction.response.send_message(f"⛏ **{res} EC** を獲得しました！")
+        # 成功メッセージ（クールダウン終了時に通知が届くことを明示）
+        await interaction.response.send_message(
+            f"⛏ **{res} EC** を獲得しました！\n"
+            f"{WORK_COOLDOWN_MINUTES}分後に `/work` が再度利用可能になったタイミングで通知を送ります。"
+        )
+
+        # 通知をスケジュール
+        _schedule_work_notification(
+            interaction.user.id,
+            interaction.channel_id,
+            WORK_COOLDOWN_MINUTES,
+            'success'
+        )
+
     else:
+        # クールダウン中 - 残り時間で通知をスケジュール
         min_left = int(res.total_seconds() // 60)
-        await interaction.response.send_message(f"☕ 休憩中... あと {min_left}分 お待ちください。", ephemeral=True)
+        
+        # 通知をスケジュール
+        _schedule_work_notification(
+            interaction.user.id,
+            interaction.channel_id,
+            min_left,
+            'cooldown'
+        )
+
+        await interaction.response.send_message(
+            f"☕ 休憩中... あと {min_left}分 お待ちください。\n"
+            f"{min_left}分後にこのチャンネルで通知します。",
+            ephemeral=True
+        )
 
 @app_commands.command(name="exchange", description="ECを本家マネーに換金申請します")
 async def exchange(interaction: discord.Interaction, amount: float):
