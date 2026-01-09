@@ -47,10 +47,10 @@ async def check_reminders(bot):
                     notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
                     if notification_type == NOTIFICATION_TYPE_WORK:
                         # 内部workコマンドの通知
-                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。再度 `/work` を実行できます！")
+                        await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1458950836456657064> を実行できます！")
                     else:
-                        # 外部bot（Takasumi）のwork検知による通知
-                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。workが再度実行できます")
+                        # 外部bot（TakasumiBOT）のwork検知による通知
+                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
                 except Exception as e:
                     print(f"Notification send error: {e}")
             continue

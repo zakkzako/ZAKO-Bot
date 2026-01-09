@@ -74,7 +74,7 @@ async def money(interaction: discord.Interaction):
 @app_commands.command(name="rate", description="現在の1ECあたりの価値を確認します")
 async def rate(interaction: discord.Interaction):
     r = economy.get_current_rate()
-    await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} TakasumiMoney**")
+    await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} TakasumiBOT Money**")
 
 @app_commands.command(name="work", description="ECを獲得します（20分に1回）")
 async def ec_work(interaction: discord.Interaction):

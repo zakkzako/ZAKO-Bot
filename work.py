@@ -26,7 +26,7 @@ JOB_MAP = {
 
 async def handle_work_detection(bot, message, embed):
     now = datetime.datetime.now(JST)
-    
+
     # interaction_metadata を使用してユーザーを特定 (警告回避)
     user = None
     if message.interaction_metadata:
@@ -75,5 +75,5 @@ async def handle_work_detection(bot, message, embed):
         json.dump(queue, f, indent=4)
 
     # 応答
-    res_embed = discord.Embed(description=f"workを検知しました。{cd_min}分後にこのチャンネルで通知します", color=0x00ff00)
+    res_embed = discord.Embed(description=f"`/work` を検知しました。\n{cd_min}分後にこのチャンネルで通知します", color=0x00ff00)
     await message.channel.send(embed=res_embed)
