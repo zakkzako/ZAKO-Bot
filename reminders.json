@@ -1,0 +1,65 @@
+[
+    {
+        "user_id": 1108019007312908378,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-01-09T16:50:51.619656+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1287776137325445125,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-01-09T16:54:21.539193+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1286942627991781480,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-01-09T16:50:02.594136+09:00",
+        "cooldown_min": 45,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1355589565230088282,
+        "channel_id": 1457626699108978809,
+        "target_time": "2026-01-09T17:06:33.656771+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1251426167467151403,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-01-09T17:08:34.004803+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1286942627991781480,
+        "channel_id": 1457964575256346808,
+        "target_time": "2026-01-09T16:26:32.688741+09:00",
+        "cooldown_min": 16,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 1160453651660288041,
+        "channel_id": 1457964575256346808,
+        "target_time": "2026-01-09T16:31:15.015279+09:00",
+        "cooldown_min": 20,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 1160453651660288041,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-01-09T17:11:26.105767+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1287776137325445125,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-01-09T16:35:00.639462+09:00",
+        "cooldown_min": 20,
+        "notification_type": "work"
+    }
+]
