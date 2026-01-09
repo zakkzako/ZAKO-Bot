@@ -12,7 +12,7 @@ import pytz
 
 JST = pytz.timezone('Asia/Tokyo')
 admin_id_env = os.getenv('ADMIN_ID')
-ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
+ADMIN_IDS = [int(admin_id.strip()) for admin_id in admin_ids_env.split(',')] if admin_ids_env else []
 
 @app_commands.command(name="ping", description="Botの応答速度を確認します")
 async def ping(interaction: discord.Interaction):
@@ -24,7 +24,7 @@ async def ping(interaction: discord.Interaction):
 @app_commands.command(name="admin_reload", description="最新ファイルを反映します")
 async def admin_reload(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_IDS:
-        await interaction.response.send_message("権限がありません", ephemeral=True)
+        await interaction.response.send_message("このコマンドを実行するための権限がありません", ephemeral=True)
         return
     try:
         import core_system
