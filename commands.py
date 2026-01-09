@@ -11,7 +11,7 @@ import datetime
 import pytz
 
 JST = pytz.timezone('Asia/Tokyo')
-admin_id_env = os.getenv('ADMIN_ID')
+admin_ids_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [int(admin_id.strip()) for admin_id in admin_ids_env.split(',')] if admin_ids_env else []
 
 @app_commands.command(name="ping", description="Botの応答速度を確認します")
