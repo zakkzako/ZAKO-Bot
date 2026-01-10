@@ -76,6 +76,19 @@ async def rate(interaction: discord.Interaction):
     r = economy.get_current_rate()
     await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} TakasumiBOT Money**")
 
+@app_commands.command(name="economy", description="経済圏の統計情報を確認します")
+async def economy_stats(interaction: discord.Interaction):
+    # 現在の経済データを読み込み
+    data = economy.load_json("economy_data.json", {"total_supply": 10000000.0})
+    total_supply = data["total_supply"]
+    rate = economy.get_current_rate()
+
+    embed = discord.Embed(title="📊 経済統計", color=0x00ffff)
+    embed.add_field(name="総発行EC", value=f"{total_supply:,.2f} EC", inline=False)
+    embed.add_field(name="交換レート", value=f"1 EC = {rate:.4f} Money", inline=False)
+    
+    await interaction.response.send_message(embed=embed)
+
 @app_commands.command(name="work", description="ECを獲得します（20分に1回）")
 async def ec_work(interaction: discord.Interaction):
     success, res = economy.process_work(interaction.user.id)
@@ -159,7 +172,7 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
         await interaction.response.send_message(f"購入申請を送信しました。管理者に {cost:.0f} Moneyを送金してください。")
 
 def setup_economy_commands(bot):
-    cmds = [money, rate, ec_work, exchange, buy_ec]
+    cmds = [money, rate, ec_work, economy_stats, exchange, buy_ec]
     for c in cmds:
         if c.name not in [cmd.name for cmd in bot.tree.get_commands()]:
             bot.tree.add_command(c)

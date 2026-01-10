@@ -4,7 +4,7 @@ import datetime
 import random
 import aiohttp
 
-BASE_POOL = 100000000
+BASE_POOL = 380300000
 INITIAL_SUPPLY = 10000000.0
 ECONOMY_FILE = "economy_data.json"
 USER_DATA_FILE = "users.json"
