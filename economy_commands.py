@@ -129,29 +129,42 @@ async def ec_work(interaction: discord.Interaction):
             ephemeral=True
         )
 
-@app_commands.command(name="exchange", description="ECをTakasumiBot moneyに換金申請します")
+@app_commands.command(name="exchange", description="ECをTakasumi moneyに換金申請します（手数料10%）")
 async def exchange(interaction: discord.Interaction, amount: float):
-    if amount <= 0: return
-    rate = economy.get_current_rate()
-    # 本家資産チェック
-    has_assets, _ = await economy.check_takasumi_assets(interaction.user.id, amount * rate)
-    if not has_assets:
-        await interaction.response.send_message(f"TakasumiBot moneyが不足しています（信頼性確保のため、申請額の10倍の資産が必要です）", ephemeral=True)
+    if amount <= 0:
+        await interaction.response.send_message("金額は0より大きくしてください。", ephemeral=True)
         return
+
+    # 最新レートを取得
+    rate = await economy.get_current_rate()
+    fee = amount * 0.1
+    total_needed = amount + fee
+    expected_money = amount * rate
+
+    # 【重要】ECを即座に手数料込みで自動回収
+    success, collected_amount = economy.collect_ec_for_exchange(interaction.user.id, amount)
     
-    if economy.request_exchange_lock(interaction.user.id, amount):
-        config = economy.load_json("config.json", {})
-        log_ch = interaction.client.get_channel(config.get("log_channel"))
-        if log_ch:
-            embed = discord.Embed(title="換金申請", color=0xffa500)
-            embed.add_field(name="ユーザー", value=interaction.user.mention)
-            embed.add_field(name="枚数", value=f"{amount} EC")
-            embed.add_field(name="送金額", value=f"{amount * rate:.0f} Money")
-            msg = await log_ch.send(embed=embed)
-            await msg.add_reaction("✅")
-            await interaction.response.send_message("申請を送信しました。管理者の承認をお待ちください。")
-    else:
-        await interaction.response.send_message("EC残高が足りません。", ephemeral=True)
+    if not success:
+        await interaction.response.send_message(
+            f"❌ ECが不足しています。\n"
+            f"申請額: {amount} EC\n"
+            f"手数料: {fee} EC (10%)\n"
+            f"**必要合計: {total_needed} EC**", 
+            ephemeral=True
+        )
+        return
+
+    # ログ出力（管理者への通知用）
+    print(f"[LOG] {interaction.user.name} (ID: {interaction.user.id}) が換金申請: {amount} EC (回収済み: {collected_amount} EC)")
+
+    embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
+    embed.add_field(name="換金希望額", value=f"{amount} EC", inline=True)
+    embed.add_field(name="回収済み(手数料込)", value=f"{collected_amount} EC", inline=True)
+    embed.add_field(name="受取予定額", value=f"{expected_money:,.0f} Money", inline=False)
+    embed.set_footer(text="管理者が本家Botで送金後、承認されるとレートが変動します。")
+
+    await interaction.response.send_message(embed=embed)
+
 
 @app_commands.command(name="buy_ec", description="TakasumiBot moneyでECを購入申請します")
 async def buy_ec(interaction: discord.Interaction, amount: float):
@@ -173,7 +186,37 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
         msg = await log_ch.send(embed=embed)
         await msg.add_reaction("✅")
         await interaction.response.send_message(f"購入申請を送信しました。管理者に {cost:.0f} Moneyを送金してください。")
+@app_commands.command(name="buy_ec", description="Takasumi moneyでECを購入申請します（手数料5%）")
+async def buy_ec(interaction: discord.Interaction, amount: float):
+    if amount <= 0:
+        await interaction.response.send_message("金額は0より大きくしてください。", ephemeral=True)
+        return
 
+    rate = await economy.get_current_rate()
+    base_cost = amount * rate
+    fee = base_cost * 0.05
+    total_money = base_cost + fee
+
+    # 【重要】1.5倍の資産チェックを実行
+    has_assets, current_assets = await economy.check_takasumi_assets(interaction.user.id, base_cost)
+    
+    if not has_assets:
+        await interaction.response.send_message(
+            f"❌ Takasumi moneyが不足しています。\n"
+            f"（信頼性確保のため、換金相当額の1.5倍（{base_cost * 1.5:,.0f} Money）の資産が必要です）", 
+            ephemeral=True
+        )
+        return
+
+    embed = discord.Embed(title="🛒 購入申請を受け付けました", color=0xffff00)
+    embed.add_field(name="購入希望額", value=f"{amount} EC", inline=True)
+    embed.add_field(name="レート", value=f"1 EC = {rate:.4f}", inline=True)
+    embed.add_field(name="本家送金額", value=f"{base_cost:,.0f} Money", inline=True)
+    embed.add_field(name="手数料(5%)", value=f"{fee:,.0f} Money", inline=True)
+    embed.add_field(name="**合計振込額**", value=f"**{total_money:,.0f} Money**", inline=False)
+    embed.description = "上記合計金額を管理人に送金してください。入金確認後、ECが発行されます。"
+
+    await interaction.response.send_message(embed=embed)
 def setup_economy_commands(bot):
     cmds = [money, rate, ec_work, economy_stats, exchange, buy_ec]
     for c in cmds:

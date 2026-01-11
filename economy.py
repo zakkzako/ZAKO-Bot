@@ -48,7 +48,7 @@ async def get_current_rate():
     return current_base / data["total_supply"]
 
 async def check_takasumi_assets(user_id, required_amount):
-    """本家APIで資産チェック（必要額の10倍あるか）"""
+    """本家APIで資産チェック（購入用：必要額の1.5倍あるか）"""
     url = f"https://api.takasumibot.com/v3/profile/{user_id}"
     try:
         async with aiohttp.ClientSession() as session:
@@ -56,7 +56,8 @@ async def check_takasumi_assets(user_id, required_amount):
                 if resp.status != 200: return False, 0
                 data = await resp.json()
                 assets = data.get("assets", 0)
-                return assets >= (required_amount * 10), assets
+                # 仕様変更：換金額の1.5倍が必要
+                return assets >= (required_amount * 1.5), assets
     except:
         return False, 0
 
@@ -82,22 +83,21 @@ def process_work(user_id):
     save_json(USER_DATA_FILE, users)
     return True, reward
 
-def request_exchange_lock(user_id, amount):
-    """換金申請時のECロック"""
+def collect_ec_for_exchange(user_id, amount_ec):
+    """換金申請用：手数料10%を含めたECを即座に徴収する"""
     users = load_json(USER_DATA_FILE, {})
     uid = str(user_id)
-    if uid not in users or users[uid]["balance"] < amount:
-        return False
-    users[uid]["balance"] -= amount
+    # 換金希望額 + 手数料10%
+    total_needed = amount_ec * 1.1
+    
+    if uid not in users or users[uid]["balance"] < total_needed:
+        return False, 0
+        
+    users[uid]["balance"] -= total_needed
     save_json(USER_DATA_FILE, users)
-    return True
+    return True, total_needed
 
-async def confirm_exchange_burn(amount):
-    """換金承認時：ECを消滅させレートを上げる"""
-    econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
-    econ["total_supply"] -= amount
-    save_json(ECONOMY_FILE, econ)
-    return await get_current_rate()
+# 古い request_exchange_lock は新しい collect_ec_for_exchange に統合されました
 
 async def confirm_buy_issue(user_id, amount):
     """購入承認時：ECを新規発行しレートを下げる"""
