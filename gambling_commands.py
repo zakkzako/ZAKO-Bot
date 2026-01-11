@@ -16,7 +16,7 @@ class BlackjackView(discord.ui.View):
         self.hands = [p_hand]  # 手札のリスト（スプリットで増える）
         self.current_hand_index = 0
         self.dealer_hand = d_hand
-        self.is_finished = False
+        self.game_over = False
         self.is_doubled = [False] # 手札ごとのダブルダウンフラグ
         
         # 初期ボタン状態の更新
@@ -35,7 +35,7 @@ class BlackjackView(discord.ui.View):
         
         for i, hand in enumerate(self.hands):
             score = blackjack.calculate_score(hand)
-            prefix = "▶️ " if i == self.current_hand_index and not self.is_finished else ""
+            prefix = "▶️ " if i == self.current_hand_index and not self.game_over else ""
             status = " (バースト)" if score > 21 else ""
             embed.add_field(
                 name=f"{prefix}あなたの手札 {i+1 if len(self.hands)>1 else ''} ({score}){status}",
@@ -43,16 +43,16 @@ class BlackjackView(discord.ui.View):
             )
 
         d_score = blackjack.calculate_score(self.dealer_hand)
-        d_val = blackjack.format_hand(self.dealer_hand) if self.is_finished else f"{blackjack.format_hand([self.dealer_hand[0]])} `??`"
-        d_label = f"({d_score})" if self.is_finished else ""
+        d_val = blackjack.format_hand(self.dealer_hand) if self.game_over else f"{blackjack.format_hand([self.dealer_hand[0]])} `??`"
+        d_label = f"({d_score})" if self.game_over else ""
         embed.add_field(name=f"ディーラーの手札 {d_label}", value=d_val, inline=False)
         
-        if not self.is_finished:
+        if not self.game_over:
             embed.set_footer(text=f"賭け金: {self.amount} EC / 操作を選択してください")
         return embed
 
     async def finish_all(self, interaction):
-        self.is_finished = True
+        self.game_over = True
         # ディーラーのターン（全手がバーストしていない場合のみ）
         if any(blackjack.calculate_score(h) <= 21 for h in self.hands):
             while blackjack.calculate_score(self.dealer_hand) < 17:
