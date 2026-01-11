@@ -176,3 +176,4 @@ def setup_economy_commands(bot):
     for c in cmds:
         if c.name not in [cmd.name for cmd in bot.tree.get_commands()]:
             bot.tree.add_command(c)
+#う
