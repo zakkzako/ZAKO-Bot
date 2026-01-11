@@ -87,3 +87,15 @@ def confirm_buy_issue(user_id, amount):
     users[uid]["balance"] += amount
     save_json(USER_DATA_FILE, users)
     return BASE_POOL / econ["total_supply"]
+
+def sync_game_result_to_supply(amount_change):
+    """
+    ゲームの結果（損益）を総発行枚数に反映させる。
+    amount_changeがプラス（ユーザーの勝利）なら発行枚数が増え、レートが下がる。
+    amount_changeがマイナス（ユーザーの敗北）なら発行枚数が減り、レートが上がる。
+    """
+    econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
+    econ["total_supply"] += amount_change
+    # 発行枚数が極端な値にならないようガード（最小100ECなど）
+    if econ["total_supply"] < 100: econ["total_supply"] = 100
+    save_json(ECONOMY_FILE, econ)
