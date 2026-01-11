@@ -11,6 +11,7 @@ import jikoku
 import commands
 import economy
 import economy_commands
+import gambling_commands
 
 JST = pytz.timezone('Asia/Tokyo')
 admin_id_env = os.getenv('ADMIN_ID')
@@ -100,8 +101,10 @@ def register_to_tree(bot):
     try:
         importlib.reload(commands)
         importlib.reload(economy_commands) 
+        importlib.reload(gambling_commands)
         commands.setup_admin_commands(bot)
         economy_commands.setup_economy_commands(bot)
+        gambling_commands.setup_gambling_commands(bot)
         # 必要に応じて同期も行う
         bot.loop.create_task(bot.tree.sync())
         print("Modules reloaded and tree synced.")
