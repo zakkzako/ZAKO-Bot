@@ -81,6 +81,8 @@ class BlackjackView(discord.ui.View):
             results.append(f"手札{i+1}: {res}")
             blackjack.save_result(self.user.id, r_type, change)
 
+        economy.sync_game_result_to_supply(total_change)
+
         users[str(self.user.id)]["balance"] += total_change
         economy.save_json("users.json", users)
 
