@@ -4,7 +4,7 @@ import datetime
 import random
 import aiohttp
 
-BASE_POOL = 380300000
+STATISTICS_URL = "https://api.takasumibot.com/v3/statistics"
 INITIAL_SUPPLY = 10000000.0
 ECONOMY_FILE = "economy_data.json"
 USER_DATA_FILE = "users.json"
@@ -19,9 +19,33 @@ def save_json(path, data):
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_current_rate():
+async def get_dynamic_base_pool():
+    """本家APIの統計データ(userカテゴリ)からベースプールを算出"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(STATISTICS_URL) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    # 2057.pngの構造通り、user > totalEarn / totalUse を取得
+                    user_stats = data.get("user", {})
+                    earn = user_stats.get("totalEarn", 0)
+                    use = user_stats.get("totalUse", 0)
+                    
+                    pool = earn - use
+                    # 異常値ガード（最低100万を下回らないようにする）
+                    return max(pool, 1000000)
+    except Exception as e:
+        print(f"API Fetch Error (BasePool): {e}")
+    
+    # 失敗時は以前の基準値（約3.8億）をフォールバックとして返す
+    return 380300000
+
+async def get_current_rate():
+    """動的なベースプールを使用して最新レートを計算（async化）"""
     data = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
-    return BASE_POOL / data["total_supply"]
+    # await を使って最新のベースプールを取得
+    current_base = await get_dynamic_base_pool()
+    return current_base / data["total_supply"]
 
 async def check_takasumi_assets(user_id, required_amount):
     """本家APIで資産チェック（必要額の10倍あるか）"""
@@ -68,14 +92,14 @@ def request_exchange_lock(user_id, amount):
     save_json(USER_DATA_FILE, users)
     return True
 
-def confirm_exchange_burn(amount):
+async def confirm_exchange_burn(amount):
     """換金承認時：ECを消滅させレートを上げる"""
     econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
     econ["total_supply"] -= amount
     save_json(ECONOMY_FILE, econ)
-    return BASE_POOL / econ["total_supply"]
+    return await get_current_rate()
 
-def confirm_buy_issue(user_id, amount):
+async def confirm_buy_issue(user_id, amount):
     """購入承認時：ECを新規発行しレートを下げる"""
     econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
     econ["total_supply"] += amount
@@ -86,7 +110,7 @@ def confirm_buy_issue(user_id, amount):
     if uid not in users: users[uid] = {"balance": 0.0}
     users[uid]["balance"] += amount
     save_json(USER_DATA_FILE, users)
-    return BASE_POOL / econ["total_supply"]
+    return await get_current_rate()
 
 def sync_game_result_to_supply(amount_change):
     """
