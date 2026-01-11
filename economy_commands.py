@@ -76,14 +76,14 @@ async def rate(interaction: discord.Interaction):
     r = economy.get_current_rate()
     await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} TakasumiBOT Money**")
 
-@app_commands.command(name="economy", description="経済圏の統計情報を確認します")
+@app_commands.command(name="economy", description="経済システムの統計情報を確認します")
 async def economy_stats(interaction: discord.Interaction):
     # 現在の経済データを読み込み
     data = economy.load_json("economy_data.json", {"total_supply": 10000000.0})
     total_supply = data["total_supply"]
     rate = economy.get_current_rate()
 
-    embed = discord.Embed(title="📊 経済統計", color=0x00ffff)
+    embed = discord.Embed(title="経済統計", color=0x00ffff)
     embed.add_field(name="総発行EC", value=f"{total_supply:,.2f} EC", inline=False)
     embed.add_field(name="交換レート", value=f"1 EC = {rate:.4f} Money", inline=False)
     
@@ -121,26 +121,26 @@ async def ec_work(interaction: discord.Interaction):
         )
 
         await interaction.response.send_message(
-            f"☕ 休憩中... あと {min_left}分 お待ちください。\n"
+            f"クールタイム中 あと {min_left}分 お待ちください。\n"
             f"{min_left}分後にこのチャンネルで通知します。",
             ephemeral=True
         )
 
-@app_commands.command(name="exchange", description="ECを本家マネーに換金申請します")
+@app_commands.command(name="exchange", description="ECをTakasumiBot moneyに換金申請します")
 async def exchange(interaction: discord.Interaction, amount: float):
     if amount <= 0: return
     rate = economy.get_current_rate()
     # 本家資産チェック
     has_assets, _ = await economy.check_takasumi_assets(interaction.user.id, amount * rate)
     if not has_assets:
-        await interaction.response.send_message(f"本家資産が不足しています（信頼性確保のため、申請額の10倍の資産が必要です）", ephemeral=True)
+        await interaction.response.send_message(f"TakasumiBot moneyが不足しています（信頼性確保のため、申請額の10倍の資産が必要です）", ephemeral=True)
         return
     
     if economy.request_exchange_lock(interaction.user.id, amount):
         config = economy.load_json("config.json", {})
         log_ch = interaction.client.get_channel(config.get("log_channel"))
         if log_ch:
-            embed = discord.Embed(title="💰 換金申請", color=0xffa500)
+            embed = discord.Embed(title="換金申請", color=0xffa500)
             embed.add_field(name="ユーザー", value=interaction.user.mention)
             embed.add_field(name="枚数", value=f"{amount} EC")
             embed.add_field(name="送金額", value=f"{amount * rate:.0f} Money")
@@ -150,14 +150,14 @@ async def exchange(interaction: discord.Interaction, amount: float):
     else:
         await interaction.response.send_message("EC残高が足りません。", ephemeral=True)
 
-@app_commands.command(name="buy_ec", description="本家マネーでECを購入申請します")
+@app_commands.command(name="buy_ec", description="TakasumiBot moneyでECを購入申請します")
 async def buy_ec(interaction: discord.Interaction, amount: float):
     if amount <= 0: return
     rate = economy.get_current_rate()
     cost = amount * rate
     has_assets, _ = await economy.check_takasumi_assets(interaction.user.id, cost)
     if not has_assets:
-        await interaction.response.send_message(f"本家資産が不足しています。", ephemeral=True)
+        await interaction.response.send_message(f"TakasumiBot moneyが不足しています。", ephemeral=True)
         return
 
     config = economy.load_json("config.json", {})
