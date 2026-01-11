@@ -87,10 +87,10 @@ async def handle_reaction_event(bot, payload):
         amount = float(embed.fields[1].value.split(" ")[0])
 
         if embed.title == "💰 換金申請":
-            new_rate = economy.confirm_exchange_burn(amount)
+            new_rate = await economy.confirm_exchange_burn(amount)
             await message.edit(content=f"✅ **換金完了** (レート: {new_rate:.4f})", embed=None)
         elif embed.title == "💎 EC購入申請":
-            new_rate = economy.confirm_buy_issue(user_id, amount)
+            new_rate = await economy.confirm_buy_issue(user_id, amount)
             await message.edit(content=f"✅ **購入完了** (レート: {new_rate:.4f})", embed=None)
             
         print(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: {embed.title} for {user_id}")
