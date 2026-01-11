@@ -64,19 +64,19 @@ def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes:
         print(f"Failed to schedule {context} notification for user {user_id}: {e}")
 
 # ユーザー向け経済コマンド
-@app_commands.command(name="money", description="所持ECと本家マネー換算額を確認します")
+@app_commands.command(name="money", description="所持ECとTakasumiBot money換算額を確認します")
 async def money(interaction: discord.Interaction):
     users = economy.load_json("users.json", {})
     balance = users.get(str(interaction.user.id), {}).get("balance", 0.0)
-    rate = economy.get_current_rate()
-    embed = discord.Embed(title="💰 資産状況", color=0x00ff00)
+    rate = await economy.get_current_rate()
+    embed = discord.Embed(title="あなたの所持金", color=0x00ff00)
     embed.add_field(name="所持EC", value=f"{balance:.2f} EC", inline=True)
     embed.add_field(name="本家換算額", value=f"約 {balance * rate:.0f} Money", inline=True)
     await interaction.response.send_message(embed=embed)
 
 @app_commands.command(name="rate", description="現在の1ECあたりの価値を確認します")
 async def rate(interaction: discord.Interaction):
-    r = economy.get_current_rate()
+        r = await economy.get_current_rate()
     await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} TakasumiBOT Money**")
 
 @app_commands.command(name="economy", description="経済システムの統計情報を確認します")
@@ -84,7 +84,7 @@ async def economy_stats(interaction: discord.Interaction):
     # 現在の経済データを読み込み
     data = economy.load_json("economy_data.json", {"total_supply": 10000000.0})
     total_supply = data["total_supply"]
-    rate = economy.get_current_rate()
+    rate = await economy.get_current_rate()
 
     embed = discord.Embed(title="経済統計", color=0x00ffff)
     embed.add_field(name="総発行EC", value=f"{total_supply:,.2f} EC", inline=False)
