@@ -99,6 +99,18 @@ def collect_ec_for_exchange(user_id, amount_ec):
 
 # 古い request_exchange_lock は新しい collect_ec_for_exchange に統合されました
 
+async def confirm_exchange_burn(amount):
+    """
+    換金承認時：回収済みのECを供給量から減らし（バーン）、レートを上昇させる
+    """
+    econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
+    # 回収されたECの分だけ、総発行枚数を減らす
+    econ["total_supply"] -= amount
+    save_json(ECONOMY_FILE, econ)
+    
+    # 最新レートを計算して返す
+    return await get_current_rate()
+
 async def confirm_buy_issue(user_id, amount):
     """購入承認時：ECを新規発行しレートを下げる"""
     econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
