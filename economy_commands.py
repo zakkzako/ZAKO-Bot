@@ -27,6 +27,11 @@ def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes:
         now = datetime.datetime.now(JST)
         target_time = now + datetime.timedelta(minutes=cooldown_minutes)
 
+        # 既存の予約があるか確認
+        if any(r.get('user_id') == user_id and r.get('notification_type') == NOTIFICATION_TYPE_WORK for r in queue):
+            return  # 予約があればここで終了
+
+
         new_data = {
             'user_id': user_id,
             'channel_id': channel_id,
@@ -43,14 +48,6 @@ def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes:
                 except json.JSONDecodeError:
                     queue = []
 
-        # 重複防止
-        queue = [
-            r for r in queue
-            if not (
-                r.get('user_id') == user_id and
-                r.get('notification_type') == NOTIFICATION_TYPE_WORK
-            )
-        ]
 
         queue.append(new_data)
 
