@@ -135,3 +135,47 @@ def sync_game_result_to_supply(amount_change):
     # 発行枚数が極端な値にならないようガード（最小100ECなど）
     if econ["total_supply"] < 100: econ["total_supply"] = 100
     save_json(ECONOMY_FILE, econ)
+
+def check_exchange_limit(user_id, amount_ec, current_rate):
+    """
+    1日の換金制限(20,000 Money)をチェックする
+    """
+    users = load_json(USER_DATA_FILE, {})
+    uid = str(user_id)
+    now_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    requested_money = amount_ec * current_rate
+    limit_money = 20000.0
+
+    if uid not in users:
+        users[uid] = {"balance": 0.0, "last_exchange_date": "", "daily_exchange_total": 0.0}
+
+    user_data = users[uid]
+    
+    # 日付が変わっていたら累計をリセット
+    if user_data.get("last_exchange_date") != now_date:
+        user_data["last_exchange_date"] = now_date
+        user_data["daily_exchange_total"] = 0.0
+
+    # 制限チェック
+    if user_data["daily_exchange_total"] + requested_money > limit_money:
+        remaining = limit_money - user_data["daily_exchange_total"]
+        return False, remaining
+
+    return True, 0
+
+def add_exchange_record(user_id, amount_ec, current_rate):
+    """
+    換金成功時にその日の累計額を加算して保存する
+    """
+    users = load_json(USER_DATA_FILE, {})
+    uid = str(user_id)
+    now_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    requested_money = amount_ec * current_rate
+
+    # 確実にデータ構造がある状態にする
+    if uid not in users: return 
+
+    users[uid]["daily_exchange_total"] = users[uid].get("daily_exchange_total", 0.0) + requested_money
+    users[uid]["last_exchange_date"] = now_date
+    save_json(USER_DATA_FILE, users)
