@@ -73,7 +73,7 @@ async def admin_issue(interaction: discord.Interaction, user: discord.Member, am
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
     # 発行処理
-    new_rate = economy.confirm_buy_issue(user.id, amount)
+    new_rate = await economy.confirm_buy_issue(user.id, amount)
     await interaction.response.send_message(f"✅ {user.mention} に {amount} EC を発行しました。新レート: {new_rate:.4f}")
 
 def setup_admin_commands(bot):
