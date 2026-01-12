@@ -115,7 +115,7 @@ class BlackjackView(discord.ui.View):
         
         # 資金チェック（追加分が必要）
         users = economy.load_json("users.json", {})
-        if users.get(str(self.user.id), {}).get("balance", 0) < self.amount:
+        if users.get(str(self.user.id), {}).get("balance", 0) < (self.amount)*2:
             return await interaction.response.send_message("ダブルダウン用の追加ECが足りません。", ephemeral=True)
         
         self.is_doubled[self.current_hand_index] = True
