@@ -11,7 +11,7 @@ JST = pytz.timezone('Asia/Tokyo')
 
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
-WORK_COOLDOWN_MINUTES = 20
+WORK_COOLDOWN_MINUTES = 45
 
 def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
     """
@@ -92,7 +92,7 @@ async def economy_stats(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
-@app_commands.command(name="work", description="ECを獲得します（20分に1回）")
+@app_commands.command(name="work", description="ECを獲得します（45分に1回）")
 async def ec_work(interaction: discord.Interaction):
     success, res = economy.process_work(interaction.user.id)
 
