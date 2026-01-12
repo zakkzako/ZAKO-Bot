@@ -62,15 +62,15 @@ async def check_takasumi_assets(user_id, required_amount):
         return False, 0
 
 def process_work(user_id):
-    """20分おきのEC獲得処理"""
+    """40分おきのEC獲得処理"""
     users = load_json(USER_DATA_FILE, {})
     uid = str(user_id)
     now = datetime.datetime.now()
 
     if uid in users and "last_work" in users[uid]:
         last_time = datetime.datetime.fromisoformat(users[uid]["last_work"])
-        if now < last_time + datetime.timedelta(minutes=20):
-            return False, (last_time + datetime.timedelta(minutes=20) - now)
+        if now < last_time + datetime.timedelta(minutes=40):
+            return False, (last_time + datetime.timedelta(minutes=40) - now)
 
     reward = round(random.uniform(10, 20), 2)
     econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
