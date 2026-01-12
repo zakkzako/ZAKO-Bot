@@ -131,50 +131,52 @@ async def ec_work(interaction: discord.Interaction):
 
 @app_commands.command(name="exchange", description="ECをTakasumi moneyに換金申請します（手数料10%）")
 async def exchange(interaction: discord.Interaction, amount: float):
+    # 1. まず「考え中...」の状態にする（これで3秒ルールが15分に延長されます）
+    await interaction.response.defer()
+
     if amount <= 0:
-        await interaction.response.send_message("金額は0より大きくしてください。", ephemeral=True)
+        # deferした後は send_message ではなく followup.send を使います
+        await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
         return
 
-    # 最新レートを取得
+    # ここでAPI通信（時間がかかっても大丈夫になります）
     rate = await economy.get_current_rate()
     fee = amount * 0.1
     total_needed = amount + fee
     expected_money = amount * rate
 
-    # 【重要】ECを即座に手数料込みで自動回収
     success, collected_amount = economy.collect_ec_for_exchange(interaction.user.id, amount)
-    
+
     if not success:
-        await interaction.response.send_message(
-            f"❌ ECが不足しています。\n"
-            f"申請額: {amount} EC\n"
-            f"手数料: {fee} EC (10%)\n"
-            f"**必要合計: {total_needed} EC**", 
+        await interaction.followup.send(
+            f"❌ ECが不足しています。\n申請額: {amount} EC\n手数料: {fee} EC (10%)\n**必要合計: {total_needed} EC**", 
             ephemeral=True
         )
         return
 
-    # ログチャンネルへ通知を送る
-    config = economy.load_json("config.json", {})
-    log_ch = interaction.client.get_channel(config.get("log_channel"))
-    if log_ch:
-        log_embed = discord.Embed(title="💰 換金申請", color=0xffa500)
-        log_embed.add_field(name="ユーザー", value=interaction.user.mention)
-        log_embed.add_field(name="換金額", value=f"{amount} EC")
-        log_embed.add_field(name="本家送金必要額", value=f"{expected_money:,.0f} Money")
-        msg = await log_ch.send(embed=log_embed)
-        await msg.add_reaction("✅") # 管理者が承認するためのリアクション
-
-    # ログ出力（管理者への通知用）
-    print(f"[LOG] {interaction.user.name} (ID: {interaction.user.id}) が換金申請: {amount} EC (回収済み: {collected_amount} EC)")
-
+    # 2. ユーザー向けのメッセージを送信（followupを使います）
     embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
     embed.add_field(name="換金希望額", value=f"{amount} EC", inline=True)
     embed.add_field(name="回収済み(手数料込)", value=f"{collected_amount} EC", inline=True)
     embed.add_field(name="受取予定額", value=f"{expected_money:,.0f} Money", inline=False)
-    embed.set_footer(text="管理者が本家Botで送金後、承認されるとレートが変動します。")
+    embed.set_footer(text="管理者が承認するとレートが変動します。")
 
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
+
+    # 3. 管理者ログ（ここは先ほどのままでOK）
+    try:
+        config = economy.load_json("config.json", {})
+        log_ch = interaction.client.get_channel(config.get("log_channel"))
+        if log_ch:
+            log_embed = discord.Embed(title="💰 換金申請", color=0xffa500)
+            log_embed.add_field(name="ユーザー", value=interaction.user.mention)
+            log_embed.add_field(name="換金額", value=f"{amount} EC")
+            log_embed.add_field(name="本家送金必要額", value=f"{expected_money:,.0f} Money")
+            msg = await log_ch.send(embed=log_embed)
+            await msg.add_reaction("✅")
+    except Exception as e:
+        print(f"Log sending error: {e}")
+
 
 @app_commands.command(name="buy_ec", description="Takasumi moneyでECを購入申請します（手数料5%）")
 async def buy_ec(interaction: discord.Interaction, amount: float):
