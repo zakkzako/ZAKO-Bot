@@ -129,53 +129,29 @@ async def ec_work(interaction: discord.Interaction):
             ephemeral=True
         )
 
-@app_commands.command(name="exchange", description="ECをTakasumi moneyに換金申請します（手数料10%）")
+@app_commands.command(name="exchange", description="ECを換金申請します（1日2万Moneyまで）")
 async def exchange(interaction: discord.Interaction, amount: float):
-    # 1. まず「考え中...」の状態にする（これで3秒ルールが15分に延長されます）
-    await interaction.response.defer()
-
-    if amount <= 0:
-        # deferした後は send_message ではなく followup.send を使います
-        await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
-        return
-
-    # ここでAPI通信（時間がかかっても大丈夫になります）
+    await interaction.response.defer() # タイムアウト対策
+    
+    # (1) 金額が0以下でないかチェック
+    # (2) 現在のレートを取得
     rate = await economy.get_current_rate()
-    fee = amount * 0.1
-    total_needed = amount + fee
-    expected_money = amount * rate
 
-    success, collected_amount = economy.collect_ec_for_exchange(interaction.user.id, amount)
-
-    if not success:
-        await interaction.followup.send(
-            f"❌ ECが不足しています。\n申請額: {amount} EC\n手数料: {fee} EC (10%)\n**必要合計: {total_needed} EC**", 
-            ephemeral=True
-        )
+    # (3) 【追加】1日2万制限のチェックを呼び出す
+    is_ok, remaining = economy.check_exchange_limit(interaction.user.id, amount, rate)
+    if not is_ok:
+        await interaction.followup.send(f"❌ 上限オーバーです。本日の残り枠: {remaining:.0f} Money")
         return
 
-    # 2. ユーザー向けのメッセージを送信（followupを使います）
-    embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
-    embed.add_field(name="換金希望額", value=f"{amount} EC", inline=True)
-    embed.add_field(name="回収済み(手数料込)", value=f"{collected_amount} EC", inline=True)
-    embed.add_field(name="受取予定額", value=f"{expected_money:,.0f} Money", inline=False)
-    embed.set_footer(text="管理者が承認するとレートが変動します。")
+    # (4) ECの没収処理 (collect_ec_for_exchange)
+    success, collected = economy.collect_ec_for_exchange(interaction.user.id, amount)
+    
+    if success:
+        # (5) 【追加】没収できたら、その金額を本日の累計に加算する
+        economy.add_exchange_record(interaction.user.id, amount, rate)
+        
+        # (6) ユーザーへ応答 & 管理者へログ送信
 
-    await interaction.followup.send(embed=embed)
-
-    # 3. 管理者ログ（ここは先ほどのままでOK）
-    try:
-        config = economy.load_json("config.json", {})
-        log_ch = interaction.client.get_channel(config.get("log_channel"))
-        if log_ch:
-            log_embed = discord.Embed(title="💰 換金申請", color=0xffa500)
-            log_embed.add_field(name="ユーザー", value=interaction.user.mention)
-            log_embed.add_field(name="換金額", value=f"{amount} EC")
-            log_embed.add_field(name="本家送金必要額", value=f"{expected_money:,.0f} Money")
-            msg = await log_ch.send(embed=log_embed)
-            await msg.add_reaction("✅")
-    except Exception as e:
-        print(f"Log sending error: {e}")
 
 
 @app_commands.command(name="buy_ec", description="Takasumi moneyでECを購入申請します（手数料5%）")
