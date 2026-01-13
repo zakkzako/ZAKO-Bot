@@ -12,7 +12,7 @@ import pytz
 
 JST = pytz.timezone('Asia/Tokyo')
 admin_ids_env = os.getenv('ADMIN_ID')
-ADMIN_IDS = [int(admin_id.strip()) for admin_id in admin_ids_env.split(',')] if admin_ids_env else []
+ADMIN_IDS = [ int(admin_id.strip().replace('"','')) for admin_id in admin_ids_env.split(',') ] if admin_ids_env else []
 
 @app_commands.command(name="ping", description="Botの応答速度を確認します")
 async def ping(interaction: discord.Interaction):
