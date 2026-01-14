@@ -17,7 +17,7 @@ logging.basicConfig(
     level=logging.INFO,  # ログレベルを INFO に設定
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
-        """logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録""" # 検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato
+        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato
         logging.StreamHandler()  # コンソールに出力
     ]
 )
