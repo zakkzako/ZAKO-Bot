@@ -4,8 +4,9 @@ import blackjack
 import economy
 import datetime
 import pytz
+import jst
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
 
 class BlackjackView(discord.ui.View):
     def __init__(self, user, amount, deck, p_hand, d_hand):
@@ -25,7 +26,7 @@ class BlackjackView(discord.ui.View):
     def update_buttons(self):
         # スプリット可能か（初手2枚が同じ数字、かつ所持金がある）
         can_split = (len(self.hands) == 1 and len(self.hands[0]) == 2 and 
-                     self.hands[0][0]['rank'] == self.hands[0][1]['rank'])
+        self.hands[0][0]['rank'] == self.hands[0][1]['rank'])
         self.split_button.disabled = not can_split
         # ダブルダウンは各手の初手のみ
         self.double_button.disabled = len(self.hands[self.current_hand_index]) != 2
@@ -149,7 +150,7 @@ class BlackjackView(discord.ui.View):
             self.update_buttons()
             await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
-@app_commands.command(name="blackjack", description="ECを賭けてブラックジャックをプレイします")
+@app_commands.command(name="bj", description="Blackjack をプレイします")
 async def bj_start(interaction: discord.Interaction, amount: float):
     if amount <= 0: return await interaction.response.send_message("金額が正しくありません。", ephemeral=True)
     

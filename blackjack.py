@@ -3,9 +3,12 @@ import json
 import os
 import datetime
 import pytz
+import jst
+import logging
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
 DATA_FILE = "blackjack_data.json"
+logger = logging.getLogger(__name__)
 
 def load_stats():
     if not os.path.exists(DATA_FILE): return {}
@@ -22,9 +25,9 @@ def save_result(user_id, result_type, amount_change):
     stats[uid]["total_profit"] += amount_change
     with open(DATA_FILE, "w") as f:
         json.dump(stats, f, indent=4)
-    
+
     log_now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
-    print(f"【{log_now}】BJ記録: User:{user_id} Result:{result_type} Change:{amount_change}")
+    logger.info(f"【{log_now}】BJ記録: User:{user_id} Result:{result_type} Change:{amount_change}")
 
 def get_deck():
     suits = ['♠', '♣', '♥', '♦']

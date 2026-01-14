@@ -1,10 +1,12 @@
 import subprocess
 import datetime
-import pytz
+import jst
+import logging
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
+logger = logging.getLogger(__name__)
 
-async def perform_full_update():
+def perform_full_update():
     """引数なしの定義"""
     try:
         subprocess.run(["git", "fetch"], check=True, capture_output=True)
@@ -12,10 +14,12 @@ async def perform_full_update():
 
         if "Your branch is behind" in status:
             log_time = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
-            print(f"[{log_time}] [Updater] 更新を検知。git pullを実行します...")
+            logger.info(f"[{log_time}] [Updater] 更新を検知。git pullを実行します...")
             subprocess.run(["git", "pull"], check=True)
-            print(f"[{log_time}] [Updater] ダウンロード完了。/admin_reload で反映してください。")
+            logger.info(f"[{log_time}] [Updater] ダウンロード完了。/admin_reload で反映してください。")
             return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"[Updater] サブプロセスエラー: {e}")
     except Exception as e:
-        print(f"[Updater] エラー: {e}")
+        logger.error(f"[Updater] エラー: {e}")
     return False

@@ -5,8 +5,10 @@ import economy
 import datetime
 import pytz
 import os
+import jst
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
+
 admin_ids_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [ int(admin_id.strip().replace('"','')) for admin_id in admin_ids_env.split(',') ] if admin_ids_env else []
 

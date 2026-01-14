@@ -3,11 +3,14 @@ import os
 import datetime
 import random
 import aiohttp
+import logging
 
 STATISTICS_URL = "https://api.takasumibot.com/v3/statistics"
 INITIAL_SUPPLY = 10000000.0
 ECONOMY_FILE = "economy_data.json"
 USER_DATA_FILE = "users.json"
+
+logger = logging.getLogger(__name__)
 
 def load_json(path, default):
     if not os.path.exists(path): return default
@@ -35,7 +38,7 @@ async def get_dynamic_base_pool():
                     # 異常値ガード（最低100万を下回らないようにする）
                     return max(pool, 1000000)
     except Exception as e:
-        print(f"API Fetch Error (BasePool): {e}")
+        logger.error(f"API Fetch Error (BasePool): {e}")
     
     # 失敗時は以前の基準値（約3.8億）をフォールバックとして返す
     return 380300000
@@ -81,6 +84,8 @@ def process_work(user_id):
     users[uid]["balance"] += reward
     users[uid]["last_work"] = now.isoformat()
     save_json(USER_DATA_FILE, users)
+
+    logger.info(f"User {user_id} earned {reward} EC")
     return True, reward
 
 def collect_ec_for_exchange(user_id, amount_ec):

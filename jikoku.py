@@ -1,13 +1,16 @@
 import discord
 import datetime
-import pytz
 import json
 import os
+import jst
+import logging
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
 
 # 直近の送信時刻を記録する変数（時刻の重複送信を防ぐ）
 last_sent_hour = None
+
+logger = logging.getLogger(__name__)
 
 async def announce_time(bot):
     """毎正時に実行される時報処理"""
@@ -17,7 +20,8 @@ async def announce_time(bot):
     with open("config.json", "r") as f:
         try:
             config = json.load(f)
-        except:
+        except json.JSONDecodeError as e:
+            logger.error(f"Config JSON Decode Error: {e}")
             return
 
     channel_id = config.get("announcement_channel")
@@ -41,6 +45,6 @@ async def announce_time(bot):
                 await channel.send(msg)
                 # 送信成功後、この時刻を記録
                 last_sent_hour = current_hour_key
-                print(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】時報を送信しました: {msg}")
-            except Exception as e:
-                print(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】時報送信エラー: {e}")
+                logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】時報を送信しました: {msg}")
+            except discord.DiscordException as e:
+                logger.error(f"Discord API Error: {e}")

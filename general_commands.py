@@ -9,8 +9,9 @@ import time
 import economy
 import datetime
 import pytz
+import jst
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
 
 @app_commands.command(name="ping", description="Botの応答速度を確認します")
 async def ping(interaction: discord.Interaction):

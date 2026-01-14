@@ -1,11 +1,13 @@
 import discord
 import datetime
-import pytz
 import requests
 import json
 import os
+import jst
+import logging
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
+logger = logging.getLogger(__name__)
 
 # Notification type constants
 NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
@@ -37,7 +39,7 @@ async def handle_work_detection(bot, message, embed):
     if not user:
         return
 
-    print(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name}のworkを検知")
+    logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name}のworkを検知")
 
     # クールタイム取得ロジック
     cd_min = 60
@@ -50,9 +52,9 @@ async def handle_work_detection(bot, message, embed):
             if job_key in JOB_MAP:
                 job_info = JOB_MAP[job_key]
                 cd_min = job_info["time"]
-            print(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name}の職業:{job_info['name']}")
+            logger.info(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name}の職業:{job_info['name']}")
     except:
-        print(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: 60分後に設定")
+        logger.warning(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: 60分後に設定")
 
     # 通知予約データの作成
     target_time = now + datetime.timedelta(minutes=cd_min)

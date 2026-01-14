@@ -6,8 +6,9 @@ import datetime
 import pytz
 import json
 import os
+import jst
 
-JST = pytz.timezone('Asia/Tokyo')
+JST = jst.get_jst()
 
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
