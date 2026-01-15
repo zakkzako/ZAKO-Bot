@@ -17,7 +17,10 @@ def _load_last_sent_hour():
     try:
         with open(JIKOKU_STATE_FILE, "r") as f:
             data = json.load(f)
-            return tuple(data.get("last_sent_hour", []))
+            hour_data = data.get("last_sent_hour")
+            if hour_data and len(hour_data) == 4:
+                return tuple(hour_data)
+            return None
     except Exception as e:
         logger.error(f"Failed to load jikoku state: {e}")
         return None

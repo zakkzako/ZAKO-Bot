@@ -6,8 +6,8 @@ import datetime
 import pytz
 import json
 import os
-import jst
 import logging
+import jst
 
 JST = jst.get_jst()
 logger = logging.getLogger(__name__)
@@ -15,6 +15,10 @@ logger = logging.getLogger(__name__)
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
 WORK_COOLDOWN_MINUTES = 45
+
+# Fee constants
+EXCHANGE_FEE_RATE = 0.1  # 10% fee for exchange
+BUY_FEE_RATE = 0.05  # 5% fee for buying EC
 
 def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
     """
@@ -154,7 +158,7 @@ async def exchange(interaction: discord.Interaction, amount: float):
         
         # (6) ユーザーへ応答 & 管理者へログ送信
         money_amount = amount * rate
-        fee = amount * 0.1 * rate
+        fee = amount * EXCHANGE_FEE_RATE * rate
         total_money = money_amount + fee
         
         # ユーザーへの応答
@@ -191,7 +195,7 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
 
     rate = await economy.get_current_rate()
     base_cost = amount * rate
-    fee = base_cost * 0.05
+    fee = base_cost * BUY_FEE_RATE
     total_money = base_cost + fee
 
     # 【重要】1.5倍の資産チェックを実行
