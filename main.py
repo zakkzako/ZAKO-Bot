@@ -89,12 +89,12 @@ class DiscordBotLogger(logging.Handler):
     def __init__(self):
         super().__init__()
         self.webhook = {
-            'ALL'     :  SyncWebhook.from_url(logging_data.webhooks['ALL']),
-            'DEBUG'   :  SyncWebhook.from_url(logging_data.webhooks['DEBUG']),
-            'INFO'    :  SyncWebhook.from_url(logging_data.webhooks['INFO']),
-            'WARNING' :  SyncWebhook.from_url(logging_data.webhooks['WARNING']),
-            'ERROR'   :  SyncWebhook.from_url(logging_data.webhooks['ERROR']),
-            'CRITICAL':  SyncWebhook.from_url(logging_data.webhooks['CRITICAL']),
+            'ALL'     :  SyncWebhook.from_url(logging_data['webhooks']['ALL']),
+            'DEBUG'   :  SyncWebhook.from_url(logging_data['webhooks']['DEBUG']),
+            'INFO'    :  SyncWebhook.from_url(logging_data['webhooks']['INFO']),
+            'WARNING' :  SyncWebhook.from_url(logging_data['webhooks']['WARNING']),
+            'ERROR'   :  SyncWebhook.from_url(logging_data['webhooks']['ERROR']),
+            'CRITICAL':  SyncWebhook.from_url(logging_data['webhooks']['CRITICAL']),
         }
 
     def emit(self, record):
