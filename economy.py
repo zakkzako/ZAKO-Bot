@@ -16,7 +16,9 @@ def load_json(path, default):
     if not os.path.exists(path): return default
     with open(path, "r") as f:
         try: return json.load(f)
-        except: return default
+        except Exception as e:
+            logger.error(f"JSON load error for {path}: {e}")
+            return default
 
 def save_json(path, data):
     with open(path, "w") as f:
@@ -61,7 +63,8 @@ async def check_takasumi_assets(user_id, required_amount):
                 assets = data.get("assets", 0)
                 # 仕様変更：換金額の1.5倍が必要
                 return assets >= (required_amount * 1.5), assets
-    except:
+    except Exception as e:
+        logger.error(f"API error checking assets for user {user_id}: {e}")
         return False, 0
 
 def process_work(user_id):

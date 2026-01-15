@@ -53,8 +53,8 @@ async def handle_work_detection(bot, message, embed):
                 job_info = JOB_MAP[job_key]
                 cd_min = job_info["time"]
             logger.info(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name}の職業:{job_info['name']}")
-    except:
-        logger.warning(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: 60分後に設定")
+    except Exception as e:
+        logger.warning(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: 60分後に設定 - {e}")
 
     # 通知予約データの作成
     target_time = now + datetime.timedelta(minutes=cd_min)
