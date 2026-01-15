@@ -1,5 +1,19 @@
+# Python関連
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# 環境変数
+.env
+
+# ログファイル
+*.log
+
+# IDE関連
+.vscode/
+.idea/
+
+# 仮想環境
 venv/
 .nvm/
-__pycache__/
-*.pyc
-.env

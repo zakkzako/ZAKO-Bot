@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Notification type constants
 NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
 
-# 職業データはそのまま維持
+# 職業データ
 JOB_MAP = {
     "none": {"name": "無職", "time": 10, "base": 100, "bonus": 0},
     "gambler": {"name": "ギャンブラー", "time": 10, "base": 80, "bonus": 0.8},
@@ -29,7 +29,7 @@ JOB_MAP = {
 async def handle_work_detection(bot, message, embed):
     now = datetime.datetime.now(JST)
 
-    # interaction_metadata を使用してユーザーを特定 (警告回避)
+    # interaction_metadata を使用してユーザーを特定 （警告回避）
     user = None
     if message.interaction_metadata:
         user = message.interaction_metadata.user

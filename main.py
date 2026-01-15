@@ -1,4 +1,5 @@
 import discord
+from discord import SyncWebhook
 from discord.ext import tasks, commands
 import importlib
 import os
@@ -33,6 +34,8 @@ class TakasumiAuxiliaryBot(commands.Bot):
         core_system.register_to_tree(self)
         await core_system.init_system(self)
         self.check_timer_loop.start()
+        self.reload_core_system_loop.start()
+        await self.tree.sync()
 
     @tasks.loop(seconds=30)
     async def check_timer_loop(self):
@@ -43,9 +46,9 @@ class TakasumiAuxiliaryBot(commands.Bot):
             logger.error(f"Loop Error: {e}")
 
     @tasks.loop(minutes=5)
-    def reload_core_system_loop(self):
+    async def reload_core_system_loop(self):
         """core_systemのリロード"""
-        importlib.reload(core_system)
+        await importlib.reload(core_system)
 
     async def on_message(self, message):
         """メッセージ受信イベントをcore_systemへ転送"""
@@ -53,8 +56,8 @@ class TakasumiAuxiliaryBot(commands.Bot):
             return
         try:
             importlib.reload(core_system)
-            await core_system.process_message_event(self, message)
             await self.process_commands(message)
+            await core_system.process_message_event(self, message)
         except Exception as e:
             logger.error(f"Message Processing Error: {e}")
 
@@ -64,13 +67,84 @@ class TakasumiAuxiliaryBot(commands.Bot):
         importlib.reload(core_system)
         await core_system.handle_reaction_event(self, payload)
 
+logging_data = {
+    'roles': {
+        'DEBUG'   :  '<@&1461192008214249696>',
+        'INFO'    :  '<@&1461178511367602189>',
+        'WARNING' :  '<@&1461192066326597727>',
+        'ERROR'   :  '<@&1461178572164038810>',
+        'CRITICAL':  '<@&1461192196735766651>',
+    },
+    'webhooks': {
+        'ALL'     :  os.getenv('DISCORD_LOG_WEBHOOK_URL_ALL'),
+        'DEBUG'   :  os.getenv('DISCORD_LOG_WEBHOOK_URL_DEBUG'),
+        'INFO'    :  os.getenv('DISCORD_LOG_WEBHOOK_URL_INFO'),
+        'WARNING' :  os.getenv('DISCORD_LOG_WEBHOOK_URL_WARNING'),
+        'ERROR'   :  os.getenv('DISCORD_LOG_WEBHOOK_URL_ERROR'),
+        'CRITICAL':  os.getenv('DISCORD_LOG_WEBHOOK_URL_CRITICAL'),
+    }
+}
+
+class DiscordBotLogger(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.webhook = {
+            'ALL'     :  SyncWebhook.from_url(logging_data.webhooks['ALL']),
+            'DEBUG'   :  SyncWebhook.from_url(logging_data.webhooks['DEBUG']),
+            'INFO'    :  SyncWebhook.from_url(logging_data.webhooks['INFO']),
+            'WARNING' :  SyncWebhook.from_url(logging_data.webhooks['WARNING']),
+            'ERROR'   :  SyncWebhook.from_url(logging_data.webhooks['ERROR']),
+            'CRITICAL':  SyncWebhook.from_url(logging_data.webhooks['CRITICAL']),
+        }
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        if len(log_entry) > 1900:
+            log_entry = log_entry[:1900] + '  ...\n［詳細はコンソールを参照してください］'
+        level = record.levelname
+        role_mention = logging_data.roles.get(level, '')
+        message = f"{role_mention}\n{log_entry}" if role_mention else log_entry
+        
+        """Webhook にログを送信"""
+        try:
+            message = message.encode('utf-8').decode('utf-8')
+            # All に送信
+            self.webhook['ALL'].send(message)
+            # レベル別に送信
+            if level in self.webhook:
+                self.webhook[level].send(message)
+        except Exception as e:
+            logger.error(f"Failed to send log via webhook: {e}")
+
 bot = TakasumiAuxiliaryBot()
 
 @bot.event
 async def on_ready():
-    now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
+    now = jst.now().strftime('%Y/%m/%d %H:%M:%S')
     logger.info(f"【{now}】{bot.user.name} としてログインしました")
 
+discord_bot_logger = DiscordBotLogger()
+logger.addHandler(discord_bot_logger)
+logging.getLogger('discord').addHandler(discord_bot_logger)
+logging.getLogger('discord.ext.commands').addHandler(discord_bot_logger)
+logging.getLogger('discord.http').addHandler(discord_bot_logger)
+logging.getLogger('discord.gateway').addHandler(discord_bot_logger)
+
+@bot.event
+async def on_error(event_method, *args, **kwargs):
+    """一般的なエラー処理"""
+    logger.error(f"Error in {event_method}", exc_info=True)
+
+@bot.event
+async def on_command_error(ctx, error):
+    """コマンドエラー処理"""
+    if isinstance(error, commands.CommandNotFound):
+        return
+    logger.error(f"Command Error: {error}")
+
+# --- 起動 ---
 token = os.getenv('DISCORD_TOKEN')
 if token:
     bot.run(token)
+else:
+    logger.critical("DISCORD_TOKEN is not set in environment variables.")

@@ -15,7 +15,7 @@ ADMIN_IDS = [ int(admin_id.strip().replace('"','')) for admin_id in admin_ids_en
 admin_group = app_commands.Group(name="admin", description="[Bot 管理者専用] 管理者用コマンド")
 
 def is_admin(user_id):
-    return user_id in ADMIN_IDS
+    return user_id in ADMIN_IDS if ADMIN_IDS else False
 
 @admin_group.command(name="reload", description="[Bot 管理者専用] 最新ファイルを反映します")
 async def admin_reload(interaction: discord.Interaction):

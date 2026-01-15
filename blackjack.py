@@ -23,8 +23,12 @@ def save_result(user_id, result_type, amount_change):
         stats[uid] = {"win": 0, "loss": 0, "draw": 0, "total_profit": 0.0}
     stats[uid][result_type] += 1
     stats[uid]["total_profit"] += amount_change
-    with open(DATA_FILE, "w") as f:
-        json.dump(stats, f, indent=4)
+    try:
+        with open(DATA_FILE, "w") as f:
+            json.dump(stats, f, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving stats: {e}")
+        return
 
     log_now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
     logger.info(f"【{log_now}】BJ記録: User:{user_id} Result:{result_type} Change:{amount_change}")
