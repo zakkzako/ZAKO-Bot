@@ -46,17 +46,12 @@ def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes:
                 except json.JSONDecodeError:
                     queue = []
 
-        # 3. 重複チェック (読み込んだ後に判定する)
-        if any(r.get('user_id') == user_id and r.get('notification_type') == NOTIFICATION_TYPE_WORK for r in queue):
-            print(f"【{datetime.datetime.now(JST)}】[Work] 通知予約をスキップ: User {user_id} は既に予約済みです。")
-            return 
-        # 既存の予約があるか確認
+        # 3. 既存の予約があるか確認
         if any(r.get('user_id') == user_id and r.get('notification_type') == NOTIFICATION_TYPE_WORK for r in queue):
             return  # 予約があればここで終了
 
         # 4. 重複がなければ追加
         queue.append(new_data)
-
 
         with open("reminders.json", "w") as f:
             json.dump(queue, f, indent=4)
