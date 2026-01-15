@@ -17,3 +17,11 @@ __pycache__/
 # 仮想環境
 venv/
 .nvm/
+
+# Bot状態ファイル
+jikoku_state.json
+reminders.json
+economy_data.json
+users.json
+blackjack_data.json
+config.json

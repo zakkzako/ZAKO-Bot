@@ -6,11 +6,29 @@ import jst
 import logging
 
 JST = jst.get_jst()
-
-# 直近の送信時刻を記録する変数（時刻の重複送信を防ぐ）
-last_sent_hour = None
+JIKOKU_STATE_FILE = "jikoku_state.json"
 
 logger = logging.getLogger(__name__)
+
+def _load_last_sent_hour():
+    """最後に送信した時刻を読み込む"""
+    if not os.path.exists(JIKOKU_STATE_FILE):
+        return None
+    try:
+        with open(JIKOKU_STATE_FILE, "r") as f:
+            data = json.load(f)
+            return tuple(data.get("last_sent_hour", []))
+    except Exception as e:
+        logger.error(f"Failed to load jikoku state: {e}")
+        return None
+
+def _save_last_sent_hour(hour_key):
+    """最後に送信した時刻を保存する"""
+    try:
+        with open(JIKOKU_STATE_FILE, "w") as f:
+            json.dump({"last_sent_hour": list(hour_key)}, f)
+    except Exception as e:
+        logger.error(f"Failed to save jikoku state: {e}")
 
 async def announce_time(bot):
     """毎正時に実行される時報処理"""
@@ -32,7 +50,7 @@ async def announce_time(bot):
     # 00分であることを確認（30秒間隔のループで呼ばれる想定）
     if now.minute == 0:
         # 通知済みチェック: 既にこの時刻に送信済みであれば送信しない
-        global last_sent_hour
+        last_sent_hour = _load_last_sent_hour()
         current_hour_key = (now.year, now.month, now.day, now.hour)
         if last_sent_hour == current_hour_key:
             return
@@ -44,7 +62,7 @@ async def announce_time(bot):
             try:
                 await channel.send(msg)
                 # 送信成功後、この時刻を記録
-                last_sent_hour = current_hour_key
+                _save_last_sent_hour(current_hour_key)
                 logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】時報を送信しました: {msg}")
             except discord.DiscordException as e:
                 logger.error(f"Discord API Error: {e}")
