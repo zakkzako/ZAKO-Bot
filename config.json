@@ -1,0 +1,13 @@
+{
+  "announcement_channel": 1456287580231434272,
+  "log_channel": 1457893837824331786,
+  "webhooks": {
+    "ALL": "https://discord.com/api/webhooks/1461218437568135209/1HmpyXkLCl6KdtFopXffND2aa7UaFMN-EN1it8pOTGKGoGXvsiKY_ahRbSQ99W58qjZS",
+    "DEBUG": "https://discord.com/api/webhooks/1461218612886110349/INIemtEO0OztTvDl3C9Q1g6dK5zFtxh2djXwlinK7j4TJ0d0peSKMvjb3XpgEPOTkTk7",
+    "INFO": "https://discord.com/api/webhooks/1461218763603968022/2hgliazVfebHzZ8vPemVkwQI5uAT2zq-LkxW796pW8iaQWwMj8G-nNGvl4E1lUo5zRLP",
+    "WARNING": "https://discord.com/api/webhooks/1461219173375152160/3A2dVPdmgsiKeVHqCnrw0PnIk5MQxTtXSDMXKd70SUPMzRyg-yxP9J09OgiJVw6_hKDl",
+    "ERROR": "https://discord.com/api/webhooks/1461219178152202387/gfNfZRBe37xh8WGiWFQSqeurtzxyolmC5liJXpCCY_SaxQuhQNkqi3FacGoj10mGM8VS",
+    "CRITICAL": "https://discord.com/api/webhooks/1461219529870020784/JTQeU0Dwhvyr6SAvL1FXCaA-yzWqznJ7Xo2DSKqlkXawXtjl6jUCqtKvLpAV1zWDCPj7"
+  }
+}
+

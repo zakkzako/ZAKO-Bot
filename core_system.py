@@ -9,7 +9,6 @@ import work
 import updater
 import jikoku
 import economy
-import commands
 import admin_commands
 import economy_commands
 import gambling_commands
@@ -115,10 +114,10 @@ def register_to_tree(bot):
         importlib.reload(admin_commands)
         importlib.reload(economy_commands) 
         importlib.reload(gambling_commands)
-        commands.setup_general_commands(bot)
-        admin_commands.setup_admin_commands(bot)
-        economy_commands.setup_economy_commands(bot)
-        gambling_commands.setup_gambling_commands(bot)
+        general_general_commands.setup_general_commands(bot)
+        admin_general_commands.setup_admin_commands(bot)
+        economy_general_commands.setup_economy_commands(bot)
+        gambling_general_commands.setup_gambling_commands(bot)
         # 必要に応じて同期も行う
         bot.loop.create_task(bot.tree.sync())
         logger.info("Modules reloaded and tree synced.")

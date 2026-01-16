@@ -48,7 +48,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
     @tasks.loop(minutes=5)
     async def reload_core_system_loop(self):
         """core_systemのリロード"""
-        await importlib.reload(core_system)
+        importlib.reload(core_system)
 
     async def on_message(self, message):
         """メッセージ受信イベントをcore_systemへ転送"""
@@ -102,7 +102,7 @@ class DiscordBotLogger(logging.Handler):
         if len(log_entry) > 1900:
             log_entry = log_entry[:1900] + '  ...\n［詳細はコンソールを参照してください］'
         level = record.levelname
-        role_mention = logging_data.roles.get(level, '')
+        role_mention = logging_data['roles'].get(level, '')
         message = f"{role_mention}\n{log_entry}" if role_mention else log_entry
         
         """Webhook にログを送信"""
