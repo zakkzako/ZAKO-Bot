@@ -35,7 +35,7 @@ async def init_system(bot):
         logger.error(f"Sync Error: {e}")
 
 async def check_reminders(bot):
-    await updater.perform_full_update()
+    updater.perform_full_update()
     try:
         await jikoku.announce_time(bot)
     except Exception as e:
