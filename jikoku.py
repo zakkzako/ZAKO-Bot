@@ -78,15 +78,10 @@ async def announce_time(bot):
             # 24時間制で表示
             msg = f"{now.hour}時をお知らせします"
             try:
-                # Save state before sending to prevent duplicate announcements
-                _save_last_sent_hour(current_hour_key)
                 await channel.send(msg)
+                # Save state after successful send to prevent duplicate announcements
+                _save_last_sent_hour(current_hour_key)
                 logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】時報を送信しました: {msg}")
             except discord.DiscordException as e:
                 logger.error(f"Discord API Error: {e}")
-                # If send fails, clear the saved state so we can retry
-                try:
-                    if os.path.exists(JIKOKU_STATE_FILE):
-                        os.remove(JIKOKU_STATE_FILE)
-                except Exception as cleanup_error:
-                    logger.error(f"Failed to cleanup state after send error: {cleanup_error}")
+                # Don't update state on failure - allows retry on next iteration

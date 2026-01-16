@@ -20,6 +20,9 @@ WORK_COOLDOWN_MINUTES = 45
 EXCHANGE_FEE_RATE = 0.1  # 10% fee for exchange
 BUY_FEE_RATE = 0.05  # 5% fee for buying EC
 
+# Transaction limits
+MAX_SINGLE_EXCHANGE_EC = 1000000.0  # Maximum EC per single exchange transaction
+
 def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
     """
     Helper function to schedule work notifications
@@ -135,9 +138,6 @@ async def ec_work(interaction: discord.Interaction):
 async def exchange(interaction: discord.Interaction, amount: float):
     await interaction.response.defer() # タイムアウト対策
     
-    # Maximum single transaction limit (to prevent integer overflow and economic instability)
-    MAX_SINGLE_EXCHANGE_EC = 1000000.0
-    
     # (1) 金額が0以下でないかチェック
     if amount <= 0:
         await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
@@ -166,15 +166,16 @@ async def exchange(interaction: discord.Interaction, amount: float):
         
         # (6) ユーザーへ応答 & 管理者へログ送信
         money_amount = amount * rate
-        fee = money_amount * EXCHANGE_FEE_RATE
+        fee_ec = amount * EXCHANGE_FEE_RATE
+        total_ec_paid = amount * (1 + EXCHANGE_FEE_RATE)
         
         # ユーザーへの応答
         embed = discord.Embed(title="💰 換金申請を受け付けました", color=0xffff00)
-        embed.add_field(name="換金額", value=f"{amount} EC", inline=True)
+        embed.add_field(name="換金額", value=f"{amount:.2f} EC", inline=True)
         embed.add_field(name="レート", value=f"1 EC = {rate:.4f}", inline=True)
-        embed.add_field(name="EC支払額（手数料込）", value=f"{amount * (1 + EXCHANGE_FEE_RATE):.2f} EC", inline=False)
-        embed.add_field(name="受取額", value=f"{money_amount:,.0f} Money", inline=True)
-        embed.add_field(name=f"手数料({EXCHANGE_FEE_RATE*100:.0f}%)", value=f"{fee:,.0f} Money", inline=True)
+        embed.add_field(name=f"手数料({EXCHANGE_FEE_RATE*100:.0f}%)", value=f"{fee_ec:.2f} EC", inline=True)
+        embed.add_field(name="EC支払額合計", value=f"{total_ec_paid:.2f} EC", inline=False)
+        embed.add_field(name="受取額", value=f"{money_amount:,.0f} Money", inline=False)
         embed.description = f"管理者の承認後、上記金額が支払われます。ECは既に回収済みです（手数料{EXCHANGE_FEE_RATE*100:.0f}%を含む）。"
         
         await interaction.followup.send(embed=embed)
@@ -185,9 +186,10 @@ async def exchange(interaction: discord.Interaction, amount: float):
         if log_ch:
             log_embed = discord.Embed(title="💰 換金申請", color=0xffff00)
             log_embed.add_field(name="ユーザー", value=interaction.user.mention)
-            log_embed.add_field(name="換金額", value=f"{amount} EC")
+            log_embed.add_field(name="換金額", value=f"{amount:.2f} EC")
+            log_embed.add_field(name="手数料", value=f"{fee_ec:.2f} EC")
+            log_embed.add_field(name="EC合計", value=f"{total_ec_paid:.2f} EC")
             log_embed.add_field(name="支払額", value=f"{money_amount:,.0f} Money")
-            log_embed.add_field(name="手数料", value=f"{fee:,.0f} Money")
             msg = await log_ch.send(embed=log_embed)
             await msg.add_reaction("✅")
     else:
