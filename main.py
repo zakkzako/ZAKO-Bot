@@ -41,7 +41,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
     async def check_timer_loop(self):
         """リマインダーチェック"""
         try:
-            core_system.check_reminders(self)
+            await core_system.check_reminders(self)
         except Exception as e:
             logger.error(f"Loop Error: {e}")
 
@@ -57,7 +57,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
         try:
             importlib.reload(core_system)
             await self.process_commands(message)
-            await core_system.process_message_event(self, message)
+            await core_system.process_message_event(bot, message)
         except Exception as e:
             logger.error(f"Message Processing Error: {e}", exc_info=True)
 

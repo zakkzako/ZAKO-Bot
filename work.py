@@ -27,12 +27,13 @@ JOB_MAP = {
 }
 
 async def handle_work_detection(bot, message, embed):
+    print(f'===[DEBUG] WORK DETECTED! FROM: {message.author.name} ===')
     now = datetime.datetime.now(JST)
 
     # interaction_metadata を使用してユーザーを特定 （警告回避）
     user = None
     if message.interaction_metadata:
-        user = message.interaction_metadata.user
+        user = message.interaction_metadata.user if message.interaction_metadata else (message.mentions[0] if message.mentions else None) if message.interaction_metadata else (message.mentions[0] if message.mentions else None)
     elif message.mentions:
         user = message.mentions[0]
 
@@ -40,6 +41,7 @@ async def handle_work_detection(bot, message, embed):
         return
 
     logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name}のworkを検知")
+    logger.info('DEBUG: Starting to save reminder...')
 
     # クールタイム取得ロジック
     cd_min = 60
@@ -53,7 +55,9 @@ async def handle_work_detection(bot, message, embed):
                 job_info = JOB_MAP[job_key]
                 cd_min = job_info["time"]
             logger.info(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name}の職業:{job_info['name']}")
-    except:
+    except Exception as e:
+        logger.warning(f'API Error, using default 60min: {e}')
+        cd_min = 60
         logger.warning(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: 60分後に設定")
 
     # 通知予約データの作成
