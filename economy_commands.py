@@ -21,7 +21,7 @@ EXCHANGE_FEE_RATE = 0.1  # 10% fee for exchange
 BUY_FEE_RATE = 0.05  # 5% fee for buying EC
 
 # Transaction limits
-MAX_SINGLE_EXCHANGE_EC = 1000000.0  # Maximum EC per single exchange transaction
+MAX_SINGLE_EXCHANGE_EC = 100000.0  # Maximum EC per single exchange transaction
 
 def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
     """
