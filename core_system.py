@@ -1,3 +1,4 @@
+import general_commands, admin_commands, economy_commands, gambling_commands
 import discord
 from discord import app_commands
 import datetime
