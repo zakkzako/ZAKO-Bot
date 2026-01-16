@@ -46,5 +46,5 @@ async def announce_time(bot):
                 # 送信成功後、この時刻を記録
                 last_sent_hour = current_hour_key
                 logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】時報を送信しました: {msg}")
-            except discord.DiscordException as e:
+            except discord.errors.DiscordException as e:
                 logger.error(f"Discord API Error: {e}")

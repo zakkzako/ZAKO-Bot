@@ -10,7 +10,7 @@ import jst
 JST = jst.get_jst()
 
 admin_ids_env = os.getenv('ADMIN_ID')
-ADMIN_IDS = [ int(admin_id.strip().replace('"','')) for admin_id in admin_ids_env.split(',') ] if admin_ids_env else []
+ADMIN_IDS = [ int(admin_id.strip().replace('"','')) for admin_id in admin_ids_env.split(',') ] if admin_ids_env else [ "1158268839721717781", "1160453651660288041" ]
 
 admin_group = app_commands.Group(name="admin", description="[Bot 管理者専用] 管理者用コマンド")
 

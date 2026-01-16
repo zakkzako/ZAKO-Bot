@@ -59,7 +59,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
             await self.process_commands(message)
             await core_system.process_message_event(self, message)
         except Exception as e:
-            logger.error(f"Message Processing Error: {e}")
+            logger.error(f"Message Processing Error: {e}", exc_info=True)
 
     # --- 経済システム（換金・購入承認）用の追加 ---
     async def on_raw_reaction_add(self, payload):
