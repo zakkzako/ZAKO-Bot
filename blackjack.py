@@ -13,8 +13,11 @@ logger = logging.getLogger(__name__)
 def load_stats():
     if not os.path.exists(DATA_FILE): return {}
     with open(DATA_FILE, "r") as f:
-        try: return json.load(f)
-        except: return {}
+        try:
+            return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading blackjack stats: {e}")
+            return {}
 
 def save_result(user_id, result_type, amount_change):
     stats = load_stats()

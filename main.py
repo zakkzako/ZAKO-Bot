@@ -69,11 +69,11 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
 logging_data = {
     'roles': {
-        'DEBUG'   :  '<@&1461192008214249696>',
-        'INFO'    :  '<@&1461178511367602189>',
-        'WARNING' :  '<@&1461192066326597727>',
-        'ERROR'   :  '<@&1461178572164038810>',
-        'CRITICAL':  '<@&1461192196735766651>',
+        'DEBUG'   :  os.getenv('DISCORD_LOG_ROLE_DEBUG', '<@&1461192008214249696>'),
+        'INFO'    :  os.getenv('DISCORD_LOG_ROLE_INFO', '<@&1461178511367602189>'),
+        'WARNING' :  os.getenv('DISCORD_LOG_ROLE_WARNING', '<@&1461192066326597727>'),
+        'ERROR'   :  os.getenv('DISCORD_LOG_ROLE_ERROR', '<@&1461178572164038810>'),
+        'CRITICAL':  os.getenv('DISCORD_LOG_ROLE_CRITICAL', '<@&1461192196735766651>'),
     },
     'webhooks': {
         'ALL'     :  os.getenv('DISCORD_LOG_WEBHOOK_URL_ALL'),

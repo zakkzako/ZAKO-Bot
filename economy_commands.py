@@ -6,13 +6,19 @@ import datetime
 import pytz
 import json
 import os
+import logging
 import jst
 
 JST = jst.get_jst()
+logger = logging.getLogger(__name__)
 
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
 WORK_COOLDOWN_MINUTES = 45
+
+# Fee constants
+EXCHANGE_FEE_RATE = 0.1  # 10% fee for exchange
+BUY_FEE_RATE = 0.05  # 5% fee for buying EC
 
 def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
     """
@@ -57,7 +63,7 @@ def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes:
             json.dump(queue, f, indent=4)
     except (OSError, json.JSONDecodeError) as e:
         # 通知スケジューリングの失敗は無視し、メイン機能に影響を与えない
-        print(f"Failed to schedule {context} notification for user {user_id}: {e}")
+        logger.error(f"Failed to schedule {context} notification for user {user_id}: {e}")
 
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECとTakasumiBot money換算額を確認します")
@@ -130,6 +136,10 @@ async def exchange(interaction: discord.Interaction, amount: float):
     await interaction.response.defer() # タイムアウト対策
     
     # (1) 金額が0以下でないかチェック
+    if amount <= 0:
+        await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
+        return
+    
     # (2) 現在のレートを取得
     rate = await economy.get_current_rate()
 
@@ -147,6 +157,33 @@ async def exchange(interaction: discord.Interaction, amount: float):
         economy.add_exchange_record(interaction.user.id, amount, rate)
         
         # (6) ユーザーへ応答 & 管理者へログ送信
+        money_amount = amount * rate
+        fee = money_amount * EXCHANGE_FEE_RATE
+        total_money = money_amount + fee
+        
+        # ユーザーへの応答
+        embed = discord.Embed(title="💰 換金申請を受け付けました", color=0xffff00)
+        embed.add_field(name="換金額", value=f"{amount} EC", inline=True)
+        embed.add_field(name="レート", value=f"1 EC = {rate:.4f}", inline=True)
+        embed.add_field(name="支払額", value=f"{money_amount:,.0f} Money", inline=True)
+        embed.add_field(name="手数料(10%)", value=f"{fee:,.0f} Money", inline=True)
+        embed.add_field(name="**受取総額**", value=f"**{total_money:,.0f} Money**", inline=False)
+        embed.description = "管理者の承認後、上記金額が支払われます。ECは既に回収済みです。"
+        
+        await interaction.followup.send(embed=embed)
+        
+        # 管理者へログ送信
+        config = economy.load_json("config.json", {})
+        log_ch = interaction.client.get_channel(config.get("log_channel"))
+        if log_ch:
+            log_embed = discord.Embed(title="💰 換金申請", color=0xffff00)
+            log_embed.add_field(name="ユーザー", value=interaction.user.mention)
+            log_embed.add_field(name="換金額", value=f"{amount} EC")
+            log_embed.add_field(name="支払総額", value=f"{total_money:,.0f} Money")
+            msg = await log_ch.send(embed=log_embed)
+            await msg.add_reaction("✅")
+    else:
+        await interaction.followup.send("❌ ECが不足しています（手数料10%を含む）。", ephemeral=True)
 
 
 
@@ -158,7 +195,7 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
 
     rate = await economy.get_current_rate()
     base_cost = amount * rate
-    fee = base_cost * 0.05
+    fee = base_cost * BUY_FEE_RATE
     total_money = base_cost + fee
 
     # 【重要】1.5倍の資産チェックを実行

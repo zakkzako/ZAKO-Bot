@@ -9,7 +9,7 @@ import work
 import updater
 import jikoku
 import economy
-import commands
+import general_commands
 import admin_commands
 import economy_commands
 import gambling_commands
@@ -34,7 +34,7 @@ async def init_system(bot):
         logger.error(f"Sync Error: {e}")
 
 async def check_reminders(bot):
-    await updater.perform_full_update()
+    updater.perform_full_update()
     try:
         await jikoku.announce_time(bot)
     except Exception as e:
@@ -85,8 +85,11 @@ async def handle_reaction_event(bot, payload):
         return
 
     channel = bot.get_channel(payload.channel_id)
-    try: message = await channel.fetch_message(payload.message_id)
-    except: return
+    try:
+        message = await channel.fetch_message(payload.message_id)
+    except Exception as e:
+        logger.error(f"Failed to fetch message {payload.message_id}: {e}")
+        return
 
     if not (message.author.id == bot.user.id and message.embeds): return
     embed = message.embeds[0]
@@ -111,11 +114,11 @@ async def handle_reaction_event(bot, payload):
 
 def register_to_tree(bot):
     try:
-        importlib.reload(commands)
+        importlib.reload(general_commands)
         importlib.reload(admin_commands)
         importlib.reload(economy_commands) 
         importlib.reload(gambling_commands)
-        commands.setup_general_commands(bot)
+        general_commands.setup_general_commands(bot)
         admin_commands.setup_admin_commands(bot)
         economy_commands.setup_economy_commands(bot)
         gambling_commands.setup_gambling_commands(bot)
