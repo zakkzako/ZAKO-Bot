@@ -172,10 +172,10 @@ async def exchange(interaction: discord.Interaction, amount: float):
         embed = discord.Embed(title="💰 換金申請を受け付けました", color=0xffff00)
         embed.add_field(name="換金額", value=f"{amount} EC", inline=True)
         embed.add_field(name="レート", value=f"1 EC = {rate:.4f}", inline=True)
-        embed.add_field(name="EC支払額（手数料込）", value=f"{amount * 1.1:.2f} EC", inline=False)
+        embed.add_field(name="EC支払額（手数料込）", value=f"{amount * (1 + EXCHANGE_FEE_RATE):.2f} EC", inline=False)
         embed.add_field(name="受取額", value=f"{money_amount:,.0f} Money", inline=True)
         embed.add_field(name=f"手数料({EXCHANGE_FEE_RATE*100:.0f}%)", value=f"{fee:,.0f} Money", inline=True)
-        embed.description = "管理者の承認後、上記金額が支払われます。ECは既に回収済みです（手数料10%を含む）。"
+        embed.description = f"管理者の承認後、上記金額が支払われます。ECは既に回収済みです（手数料{EXCHANGE_FEE_RATE*100:.0f}%を含む）。"
         
         await interaction.followup.send(embed=embed)
         
@@ -191,7 +191,7 @@ async def exchange(interaction: discord.Interaction, amount: float):
             msg = await log_ch.send(embed=log_embed)
             await msg.add_reaction("✅")
     else:
-        await interaction.followup.send("❌ ECが不足しています（手数料10%を含む）。", ephemeral=True)
+        await interaction.followup.send(f"❌ ECが不足しています（手数料{EXCHANGE_FEE_RATE*100:.0f}%を含む）。", ephemeral=True)
 
 
 
