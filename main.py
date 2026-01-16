@@ -41,7 +41,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
     async def check_timer_loop(self):
         """リマインダーチェック"""
         try:
-            core_system.check_reminders(self)
+            await core_system.check_reminders(self)
         except Exception as e:
             logger.error(f"Loop Error: {e}")
 
