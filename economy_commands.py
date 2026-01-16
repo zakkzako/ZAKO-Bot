@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
-WORK_COOLDOWN_MINUTES = 40
+WORK_COOLDOWN_MINUTES = 45
 
 # Fee constants
 EXCHANGE_FEE_RATE = 0.1  # 10% fee for exchange
@@ -94,7 +94,7 @@ async def economy_stats(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
-@app_commands.command(name="work", description="ECを獲得します（40分に1回）")
+@app_commands.command(name="work", description="ECを獲得します（45分に1回）")
 async def ec_work(interaction: discord.Interaction):
     success, res = economy.process_work(interaction.user.id)
 
