@@ -158,7 +158,7 @@ async def exchange(interaction: discord.Interaction, amount: float):
         
         # (6) ユーザーへ応答 & 管理者へログ送信
         money_amount = amount * rate
-        fee = amount * EXCHANGE_FEE_RATE * rate
+        fee = money_amount * EXCHANGE_FEE_RATE
         total_money = money_amount + fee
         
         # ユーザーへの応答
