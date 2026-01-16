@@ -18,8 +18,19 @@ def _load_last_sent_hour():
         with open(JIKOKU_STATE_FILE, "r") as f:
             data = json.load(f)
             hour_data = data.get("last_sent_hour")
-            if hour_data and len(hour_data) == 4:
-                return tuple(hour_data)
+            if isinstance(hour_data, (list, tuple)) and len(hour_data) == 4:
+                try:
+                    year, month, day, hour = (int(hour_data[0]), int(hour_data[1]), int(hour_data[2]), int(hour_data[3]))
+                except (TypeError, ValueError):
+                    logger.warning(f"Invalid jikoku state format (non-integer values): {hour_data}")
+                    return None
+                try:
+                    # Validate that the loaded values form a valid datetime
+                    datetime.datetime(year, month, day, hour)
+                except ValueError:
+                    logger.warning(f"Invalid jikoku state datetime values: {hour_data}")
+                    return None
+                return (year, month, day, hour)
             return None
     except Exception as e:
         logger.error(f"Failed to load jikoku state: {e}")
@@ -28,8 +39,12 @@ def _load_last_sent_hour():
 def _save_last_sent_hour(hour_key):
     """最後に送信した時刻を保存する"""
     try:
-        with open(JIKOKU_STATE_FILE, "w") as f:
+        # Write to temporary file first for atomic operation
+        temp_file = JIKOKU_STATE_FILE + ".tmp"
+        with open(temp_file, "w") as f:
             json.dump({"last_sent_hour": list(hour_key)}, f)
+        # Atomically replace the old file
+        os.replace(temp_file, JIKOKU_STATE_FILE)
     except Exception as e:
         logger.error(f"Failed to save jikoku state: {e}")
 
@@ -63,9 +78,15 @@ async def announce_time(bot):
             # 24時間制で表示
             msg = f"{now.hour}時をお知らせします"
             try:
-                await channel.send(msg)
-                # 送信成功後、この時刻を記録
+                # Save state before sending to prevent duplicate announcements
                 _save_last_sent_hour(current_hour_key)
+                await channel.send(msg)
                 logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】時報を送信しました: {msg}")
             except discord.DiscordException as e:
                 logger.error(f"Discord API Error: {e}")
+                # If send fails, clear the saved state so we can retry
+                try:
+                    if os.path.exists(JIKOKU_STATE_FILE):
+                        os.remove(JIKOKU_STATE_FILE)
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup state after send error: {cleanup_error}")
