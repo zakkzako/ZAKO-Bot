@@ -64,14 +64,12 @@ async def process_message_event(bot, message):
         return
     
     for embed in message.embeds:
-        title = embed.title or ""
+        author_name = embed.author.name if embed.author else ""
         desc = embed.description or ""
-        fields_text = "".join([f.name + f.value for f in embed.fields])
-        full_content = (title + desc + fields_text)
-        
+
         # あなたがコピペしてくれた「給料:」の形式に完全対応
-        if "コイン" in full_content and "手に入れました" in full_content and "給料" in full_content:
-            print(f"===[DEBUG] WORK DETECTED! FROM: {message.author.name} ===")
+        if "コインを手に入れました" in author_name and "給料" in desc:
+            logger.debug(f"Work detected in message ID {message.id} by {message.author.id}")
             importlib.reload(work)
             await work.handle_work_detection(bot, message, embed)
             break
@@ -96,8 +94,10 @@ async def handle_reaction_event(bot, payload):
 
 def register_to_tree(bot):
     try:
-        importlib.reload(general_commands); importlib.reload(admin_commands)
-        importlib.reload(economy_commands); importlib.reload(gambling_commands)
+        importlib.reload(general_commands)
+        importlib.reload(admin_commands)
+        importlib.reload(economy_commands)
+        importlib.reload(gambling_commands)
         general_commands.setup_general_commands(bot)
         admin_commands.setup_admin_commands(bot)
         economy_commands.setup_economy_commands(bot)
