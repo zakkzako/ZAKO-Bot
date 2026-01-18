@@ -1,59 +1,44 @@
-import random
-import json
 import os
+import json
 import datetime
-import pytz
-import jst
 import logging
+import jst
 
 JST = jst.get_jst()
-DATA_FILE = "blackjack_data.json"
+DATA_FILE = "blackjack_stats.json"
 logger = logging.getLogger(__name__)
 
 def load_stats():
     if not os.path.exists(DATA_FILE): return {}
-    with open(DATA_FILE, "r") as f:
-        try: return json.load(f)
-        except: return {}
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading blackjack stats: {e}")
+        return {}
 
 def save_result(user_id, result_type, amount_change):
     stats = load_stats()
     uid = str(user_id)
     if uid not in stats:
         stats[uid] = {"win": 0, "loss": 0, "draw": 0, "total_profit": 0.0}
+    if result_type not in ("win", "loss", "draw"):
+        logger.warning(f"Invalid blackjack result_type: {result_type}")
+        return
     stats[uid][result_type] += 1
     stats[uid]["total_profit"] += amount_change
+    tmp = f"{DATA_FILE}.tmp"
     try:
-        with open(DATA_FILE, "w") as f:
-            json.dump(stats, f, indent=4)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(stats, f, indent=4, ensure_ascii=False)
+        os.replace(tmp, DATA_FILE)
     except Exception as e:
         logger.error(f"Error saving stats: {e}")
-        return
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
 
     log_now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
     logger.info(f"【{log_now}】BJ記録: User:{user_id} Result:{result_type} Change:{amount_change}")
-
-def get_deck():
-    suits = ['♠', '♣', '♥', '♦']
-    ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-    deck = [{'suit': s, 'rank': r} for s in suits for r in ranks]
-    random.shuffle(deck)
-    return deck
-
-def calculate_score(hand):
-    score = 0
-    aces = 0
-    for card in hand:
-        if card['rank'] in ['J', 'Q', 'K']: score += 10
-        elif card['rank'] == 'A':
-            aces += 1
-            score += 11
-        else: score += int(card['rank'])
-    while score > 21 and aces:
-        score -= 10
-        aces -= 1
-    return score
-
-def format_hand(hand):
-    if not hand: return "なし"
-    return " ".join([f"`{c['suit']}{c['rank']}`" for c in hand])
