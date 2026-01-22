@@ -105,7 +105,7 @@ class DiscordBotLogger(logging.Handler):
         else:
             log_entry += '\n```'
         level = record.levelname
-        role_mention = logging_data.roles.get(level, '')
+        role_mention = logging_data.get('roles', {}).get(level, '')
         message = f"{role_mention}\n{log_entry}" if role_mention else log_entry
         
         """Webhook にログを送信"""

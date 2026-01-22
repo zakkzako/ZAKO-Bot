@@ -53,7 +53,8 @@ async def admin_log(interaction: discord.Interaction):
     await interaction.response.send_message(f"✅ 申請ログチャンネルを設定しました", ephemeral=True)
 
 
-admin_money_group = admin_group.create_subgroup(name="money", description="[Bot 管理者専用] 金銭操作コマンド")
+admin_money_group = app_commands.Group(name="money", description="[Bot 管理者専用] 金銭操作コマンド")
+admin_group.add_command(admin_money_group)
 
 @admin_money_group.command(name="add", description="[Bot 管理者専用] ユーザーの金額を追加します")
 async def money_add(interaction: discord.Interaction, user: discord.Member, amount: float):
