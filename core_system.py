@@ -9,7 +9,7 @@ import work
 import updater
 import jikoku
 import economy
-import commands
+import general_commands
 import admin_commands
 import economy_commands
 import gambling_commands
@@ -111,7 +111,7 @@ async def handle_reaction_event(bot, payload):
 
 def register_to_tree(bot):
     try:
-        importlib.reload(commands)
+        importlib.reload(general_commands)
         importlib.reload(admin_commands)
         importlib.reload(economy_commands) 
         importlib.reload(gambling_commands)
