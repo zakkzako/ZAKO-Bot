@@ -33,9 +33,9 @@ class TakasumiAuxiliaryBot(commands.Bot):
         """起動時の初期化とコマンド同期をcore_systemに委譲"""
         core_system.register_to_tree(self)
         await core_system.init_system(self)
+        await self.tree.sync()
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
-        await self.tree.sync()
 
     @tasks.loop(seconds=30)
     async def check_timer_loop(self):
@@ -48,7 +48,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
     @tasks.loop(minutes=5)
     async def reload_core_system_loop(self):
         """core_systemのリロード"""
-        await importlib.reload(core_system)
+        importlib.reload(core_system)
 
     async def on_message(self, message):
         """メッセージ受信イベントをcore_systemへ転送"""
@@ -99,8 +99,11 @@ class DiscordBotLogger(logging.Handler):
 
     def emit(self, record):
         log_entry = self.format(record)
+        log_entry = f"```py\n{log_entry}"
         if len(log_entry) > 1900:
-            log_entry = log_entry[:1900] + '  ...\n［詳細はコンソールを参照してください］'
+            log_entry = log_entry[:1900] + '  ...\n```\n［詳細はコンソールを参照してください］'
+        else:
+            log_entry += '\n```'
         level = record.levelname
         role_mention = logging_data.roles.get(level, '')
         message = f"{role_mention}\n{log_entry}" if role_mention else log_entry
