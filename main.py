@@ -55,8 +55,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
         if message.author == self.user:
             return
         try:
-            importlib.reload(core_system)
-            await self.process_commands(message)
+            """importlib.reload(core_system)"""
             await core_system.process_message_event(self, message)
         except Exception as e:
             logger.error(f"Message Processing Error: {e}")
@@ -99,11 +98,14 @@ class DiscordBotLogger(logging.Handler):
 
     def emit(self, record):
         log_entry = self.format(record)
-        log_entry = f"```py\n{log_entry}"
-        if len(log_entry) > 1900:
-            log_entry = log_entry[:1900] + '  ...\n```\n［詳細はコンソールを参照してください］'
+        if log_entry.startswith('【20'):
+            log_entry = f"```js\n{log_entry}\n```"
         else:
-            log_entry += '\n```'
+            log_entry = f"```py\n{log_entry}"
+            if len(log_entry) > 1900:
+                log_entry = log_entry[:1900] + '  ...\n```\n［詳細はコンソールを参照してください］'
+            else:
+                log_entry += '\n```'
         level = record.levelname
         role_mention = logging_data.get('roles', {}).get(level, '')
         message = f"{role_mention}\n{log_entry}" if role_mention else log_entry
