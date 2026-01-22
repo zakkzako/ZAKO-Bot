@@ -34,7 +34,6 @@ class TakasumiAuxiliaryBot(commands.Bot):
         core_system.register_to_tree(self)
         await core_system.init_system(self)
         await self.tree.sync()
-        await self.wait_until_ready()
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
 
