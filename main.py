@@ -34,7 +34,6 @@ class TakasumiAuxiliaryBot(commands.Bot):
         core_system.register_to_tree(self)
         await core_system.init_system(self)
         await self.tree.sync()
-        await self.wait_until_ready()
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
 
@@ -147,6 +146,13 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return
     logger.error(f"Command Error: {error}")
+
+@bot.event
+async def on_message_edit(before, after):
+    if after.author == bot.user:
+        return
+    await core_system.process_message_event(bot, after)
+
 
 # --- 起動 ---
 token = os.getenv('DISCORD_TOKEN')
