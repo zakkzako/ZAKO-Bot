@@ -115,7 +115,7 @@ def register_to_tree(bot):
         importlib.reload(admin_commands)
         importlib.reload(economy_commands) 
         importlib.reload(gambling_commands)
-        commands.setup_general_commands(bot)
+        general_commands.setup_general_commands(bot)
         admin_commands.setup_admin_commands(bot)
         economy_commands.setup_economy_commands(bot)
         gambling_commands.setup_gambling_commands(bot)
