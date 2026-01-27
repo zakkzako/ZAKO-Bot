@@ -6,7 +6,7 @@ import logging
 JST = jst.get_jst()
 logger = logging.getLogger(__name__)
 
-def perform_full_update():
+async def perform_full_update():
     """引数なしの定義"""
     try:
         subprocess.run(["git", "fetch"], check=True, capture_output=True)

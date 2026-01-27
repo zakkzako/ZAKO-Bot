@@ -41,9 +41,11 @@ class TakasumiAuxiliaryBot(commands.Bot):
     async def check_timer_loop(self):
         """リマインダーチェック"""
         try:
-            core_system.check_reminders(self)
+            # ここに await を追加しました！
+            await core_system.check_reminders(self)
         except Exception as e:
             logger.error(f"Loop Error: {e}")
+
 
     @tasks.loop(minutes=5)
     async def reload_core_system_loop(self):
@@ -129,7 +131,7 @@ class EconomyApplication(discord.ui.View):
 
     # EC -> TC
     @discord.ui.button(custom_id="ec-application:exchange:to_ec:approve", label="承認", style=discord.ButtonStyle.green)
-    async def ec_application_exchange_to_ec_approve(self, interaction: discord.Interaction, button: discord.ui.Button)
+    async def ec_application_exchange_to_ec_approve(self, interaction: discord.Interaction, button: discord.ui.Button):
         await core_system.handle_economy_application_exchange_ec(self, interaction, approved=True)
     @discord.ui.button(custom_id="ec-application:exchange:to_ec:reject", label="拒否", style=discord.ButtonStyle.red)
     async def ec_application_exchange_to_ec_reject(self, interaction: discord.Interaction, button: discord.ui.Button):
