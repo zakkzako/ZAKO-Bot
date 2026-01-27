@@ -8,6 +8,8 @@ import jst
 
 JST = jst.get_jst()
 
+active_players = set()
+
 class BlackjackView(discord.ui.View):
     def __init__(self, user, amount, deck, p_hand, d_hand):
         super().__init__(timeout=120)
@@ -54,43 +56,56 @@ class BlackjackView(discord.ui.View):
 
     async def finish_all(self, interaction):
         self.game_over = True
-        # ディーラーのターン（全手がバーストしていない場合のみ）
+        # ロック解除
+        if self.user.id in active_players:
+            active_players.remove(self.user.id)
+
         if any(blackjack.calculate_score(h) <= 21 for h in self.hands):
             while blackjack.calculate_score(self.dealer_hand) < 17:
                 self.dealer_hand.append(self.deck.pop())
         
         d_score = blackjack.calculate_score(self.dealer_hand)
-        total_change = 0
+        total_payout = 0.0 # 払い戻し金の合計
         results = []
-
         users = economy.load_json("users.json", {})
+        uid = str(self.user.id)
         
         for i, hand in enumerate(self.hands):
             p_score = blackjack.calculate_score(hand)
-            bet = self.amount * (2 if self.is_doubled[i] else 1)
+            # その手に賭けている額
+            actual_bet = self.amount * (2 if self.is_doubled[i] else 1)
             
+            payout = 0.0
             if p_score > 21:
-                res, change, r_type = "敗北 (バースト)", -bet, 'loss'
+                res, r_type = "敗北 (バースト)", 'loss'
             elif d_score > 21 or p_score > d_score:
-                res, change, r_type = "勝利！", bet, 'win'
+                res, r_type = "勝利！", 'win'
+                payout = actual_bet * 2 # 賭け金＋利益を払い戻し
             elif p_score < d_score:
-                res, change, r_type = "敗北", -bet, 'loss'
+                res, r_type = "敗北", 'loss'
             else:
-                res, change, r_type = "引き分け", 0, 'draw'
+                res, r_type = "引き分け", 'draw'
+                payout = actual_bet      # 賭け金をそのまま返却
             
-            total_change += change
+            total_payout += payout
             results.append(f"手札{i+1}: {res}")
-            blackjack.save_result(self.user.id, r_type, change)
+            # レート反映は純損益（払い戻し - 賭けた額）
+            economy.sync_game_result_to_supply(payout - actual_bet)
+            blackjack.save_result(self.user.id, r_type, payout - actual_bet)
 
-        economy.sync_game_result_to_supply(total_change)
-
-        users[str(self.user.id)]["balance"] += total_change
+        # 払い戻しを反映
+        users[uid]["balance"] += total_payout
         economy.save_json("users.json", users)
 
+        # 表示用収支の計算
+        total_invested = sum([self.amount * (2 if d else 1) for d in self.is_doubled])
+        profit = total_payout - total_invested
+
         embed = self.create_embed()
-        embed.description = "\n".join(results) + f"\n\n**トータル収支: {total_change:+.2f} EC**"
-        embed.color = 0xe74c3c if total_change < 0 else 0xf1c40f if total_change > 0 else 0x95a5a6
+        embed.description = "\n".join(results) + f"\n\n**トータル収支: {profit:+.2f} EC**"
+        embed.color = 0xe74c3c if profit < 0 else 0xf1c40f if profit > 0 else 0x95a5a6
         await interaction.response.edit_message(embed=embed, view=None)
+
 
     @discord.ui.button(label="Hit", style=discord.ButtonStyle.primary)
     async def hit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -116,9 +131,13 @@ class BlackjackView(discord.ui.View):
         
         # 資金チェック（追加分が必要）
         users = economy.load_json("users.json", {})
+        uid = str(self.user.id) 
         if users.get(str(self.user.id), {}).get("balance", 0) < (self.amount)*2:
             return await interaction.response.send_message("ダブルダウン用の追加ECが足りません。", ephemeral=True)
-        
+
+        users[uid]["balance"] -= self.amount
+        economy.save_json("users.json", users)
+
         self.is_doubled[self.current_hand_index] = True
         self.hands[self.current_hand_index].append(self.deck.pop())
         await self.next_hand(interaction)
@@ -128,8 +147,12 @@ class BlackjackView(discord.ui.View):
         if interaction.user.id != self.user.id: return
         
         users = economy.load_json("users.json", {})
+        uid = str(self.user.id) 
         if users.get(str(self.user.id), {}).get("balance", 0) < self.amount:
             return await interaction.response.send_message("スプリット用の追加ECが足りません。", ephemeral=True)
+
+        users[uid]["balance"] -= self.amount
+        economy.save_json("users.json", users)
 
         # 手札を分割
         card = self.hands[0].pop()
@@ -138,7 +161,6 @@ class BlackjackView(discord.ui.View):
         # それぞれに1枚ずつ補充
         self.hands[0].append(self.deck.pop())
         self.hands[1].append(self.deck.pop())
-        
         self.update_buttons()
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
@@ -154,10 +176,24 @@ class BlackjackView(discord.ui.View):
 async def bj_start(interaction: discord.Interaction, amount: float):
     if amount <= 0: return await interaction.response.send_message("金額が正しくありません。", ephemeral=True)
     
+    # 1. 重複プレイチェック
+    if interaction.user.id in active_players:
+        return await interaction.response.send_message("⚠️ 実行中のゲームを先に完了させてください。", ephemeral=True)
+    
+    # 2. 所持金チェックと徴収
     users = economy.load_json("users.json", {})
-    balance = users.get(str(interaction.user.id), {}).get("balance", 0.0)
+    uid = str(interaction.user.id)
+    balance = users.get(uid, {}).get("balance", 0.0)
+    
     if balance < amount:
         return await interaction.response.send_message("ECが足りません。", ephemeral=True)
+
+    # 【重要】開始時に財布から引く（前払い）
+    users[uid]["balance"] -= amount
+    economy.save_json("users.json", users)
+    
+    # プレイ中リストに登録
+    active_players.add(interaction.user.id)
 
     deck = blackjack.get_deck()
     p_hand = [deck.pop(), deck.pop()]
