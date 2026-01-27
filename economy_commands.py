@@ -147,6 +147,26 @@ async def exchange(interaction: discord.Interaction, amount: float):
         economy.add_exchange_record(interaction.user.id, amount, rate)
         
         # (6) ユーザーへ応答 & 管理者へログ送信
+        config = economy.load_json("config.json", {})
+        log_ch = interaction.client.get_channel(config.get("log_channel"))
+        
+        if log_ch:
+            log_embed = discord.Embed(title="💰 換金申請", color=0xffa500)
+            log_embed.add_field(name="ユーザー", value=interaction.user.mention)
+            log_embed.add_field(name="換金額", value=f"{amount} EC")
+            log_embed.add_field(name="換算額", value=f"{amount * rate:,.0f} Money")
+            # 承認・拒否リアクションで core_system.handle_reaction_event が動く仕組み
+            msg = await log_ch.send(embed=log_embed)
+            await msg.add_reaction("✅")
+
+        # (7) ユーザーへ完了報告
+        embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
+        embed.description = f"**{amount} EC** (約 {amount * rate:,.0f} Money) の換金申請を受け付けました。\n管理者が承認するまでお待ちください。"
+        embed.set_footer(text="※手数料10%が含まれた金額が既に差し引かれています")
+        
+        await interaction.followup.send(embed=embed) # deferしているので followup を使う
+    else:
+        await interaction.followup.send("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
 
 
 
