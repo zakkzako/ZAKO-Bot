@@ -58,7 +58,7 @@ admin_money_group = app_commands.Group(name="money", description="［ Bot 管理
 admin_group.add_command(admin_money_group)
 
 @admin_money_group.command(name="add", description="［ Bot 管理者専用 ］ ユーザーの所持金を追加します")
-@admin_money_group.describe(user="対象のユーザーのID", amount="追加する金額")
+@app_commands.describe(user="対象のユーザーのID", amount="追加する金額")
 async def money_add(interaction: discord.Interaction, user: discord.Member, amount: float):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
@@ -70,7 +70,7 @@ async def money_add(interaction: discord.Interaction, user: discord.Member, amou
     await interaction.response.send_message(f"✅ {user.mention} に {amount} を追加しました。", ephemeral=True)
 
 @admin_money_group.command(name="remove", description="［ Bot 管理者専用 ］ ユーザーの所持金を剥奪します")
-@admin_money_group.describe(user="対象のユーザーのID", amount="剥奪する金額")
+@app_commands.describe(user="対象のユーザーのID", amount="剥奪する金額")
 async def money_remove(interaction: discord.Interaction, user: discord.Member, amount: float):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
@@ -82,7 +82,7 @@ async def money_remove(interaction: discord.Interaction, user: discord.Member, a
     await interaction.response.send_message(f"✅ {user.mention} から {amount} を剥奪しました。", ephemeral=True)
 
 @admin_money_group.command(name="set", description="［ Bot 管理者専用 ］ ユーザーの所持金を設定します")
-@admin_money_group.describe(user="対象のユーザーのID", amount="設定する金額")
+@app_commands.describe(user="対象のユーザーのID", amount="設定する金額")
 async def money_set(interaction: discord.Interaction, user: discord.Member, amount: float):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)

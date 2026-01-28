@@ -141,7 +141,7 @@ exchange_dev__choices___type = [
 @app_commands.choices(type=exchange_dev__choices___type)
 async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choice[str], amount: float):
     # テスト用のチャンネルでのみ動作させる
-    if interaction.channel_id != 1458677806388220006
+    if interaction.channel_id != 1458677806388220006:
         await interaction.response.send_message("このコマンドは管理者のテスト用のチャンネルでのみ使用できます。", ephemeral=True)
         return
 

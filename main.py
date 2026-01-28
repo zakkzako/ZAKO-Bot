@@ -129,8 +129,8 @@ bot = TakasumiAuxiliaryBot()
 @bot.event
 async def on_ready():
     # 交換申請のビューを追加
-    bot.add_view(EconomyApplicationViews.TC_to_EC())
-    bot.add_view(EconomyApplicationViews.EC_to_TC())
+    bot.add_view(EconomyApplicationViews.TC_to_EC(bot))
+    bot.add_view(EconomyApplicationViews.EC_to_TC(bot))
 
     # ログイン成功メッセージ
     now = jst.now().strftime('%Y/%m/%d %H:%M:%S')
