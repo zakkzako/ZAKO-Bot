@@ -12,6 +12,10 @@ USER_DATA_FILE = "users.json"
 
 logger = logging.getLogger(__name__)
 
+def user_exists(user_id):
+    users = load_json(USER_DATA_FILE, {})
+    return str(user_id) in users
+
 def load_json(path, default):
     if not os.path.exists(path): return default
     with open(path, "r") as f:
@@ -64,6 +68,32 @@ async def check_takasumi_assets(user_id, required_amount):
     except:
         return False, 0
 
+def add_money(user_id, amount):
+    """ユーザーのEC残高を増やす"""
+    users = load_json(USER_DATA_FILE, {})
+    uid = str(user_id)
+    if uid not in users: users[uid] = {"balance": 0.0}
+    users[uid]["balance"] += amount
+    save_json(USER_DATA_FILE, users)
+
+def remove_money(user_id, amount):
+    """ユーザーのEC残高を減らす"""
+    users = load_json(USER_DATA_FILE, {})
+    uid = str(user_id)
+    if uid not in users: return False
+    if users[uid]["balance"] < amount: return False
+    users[uid]["balance"] -= amount
+    save_json(USER_DATA_FILE, users)
+    return True
+
+def set_money(user_id, amount):
+    """ユーザーのEC残高を設定する"""
+    users = load_json(USER_DATA_FILE, {})
+    uid = str(user_id)
+    if uid not in users: users[uid] = {"balance": 0.0}
+    users[uid]["balance"] = amount
+    save_json(USER_DATA_FILE, users)
+
 def process_work(user_id):
     """40分おきのEC獲得処理"""
     users = load_json(USER_DATA_FILE, {})
@@ -103,6 +133,16 @@ def collect_ec_for_exchange(user_id, amount_ec):
     return True, total_needed
 
 # 古い request_exchange_lock は新しい collect_ec_for_exchange に統合されました
+
+async def confirm_exchange(amount, to, user_id=None):
+    if to == "ec":
+        rate = await confirm_buy_issue(user_id, amount)
+        return rate
+    elif to == "tc":
+        rate = await confirm_exchange_burn(amount)
+        return rate
+    else:
+        raise ValueError("Invalid exchange target")
 
 async def confirm_exchange_burn(amount):
     """
@@ -184,3 +224,4 @@ def add_exchange_record(user_id, amount_ec, current_rate):
     users[uid]["daily_exchange_total"] = users[uid].get("daily_exchange_total", 0.0) + requested_money
     users[uid]["last_exchange_date"] = now_date
     save_json(USER_DATA_FILE, users)
+    

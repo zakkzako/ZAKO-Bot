@@ -18,7 +18,8 @@ import logging
 
 JST = jst.get_jst()
 admin_id_env = os.getenv('ADMIN_ID')
-ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []
+"""ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []"""
+ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェックがうまくいかないため、一時的にハードコーディングしています。ゆるして  by yamatomato0105
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,71 @@ async def process_message_event(bot, message):
                 importlib.reload(work)
                 await work.handle_work_detection(bot, message, embed)
 
+# EC -> TC 承認処理
+async def handle_economy_application_exchange_ec(bot, interaction, approved):
+    if interaction.user.id not in ADMIN_IDS:
+        return
+
+    """承認チェック"""
+    if approved == True:
+        # 承認
+        try:
+            importlib.reload(economy)
+            embed = interaction.message.embeds[0]
+            uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            user = bot.get_user(uid)
+            amount = float((embed.fields[1].value).split(" ")[0])
+            new_rate = await economy.confirm_exchange(amount, "ec", user)
+            embed.fields[3].value = f"✅ 承認済み（レート: {new_rate:.4f}）"
+            await interaction.message.edit(embed=embed, view=None)
+            logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to EC for {user.name} ({user.id})")
+        except Exception as e:
+            logger.error(f"Economy Exchange to EC Error: {e}")
+
+    elif approved == False:
+        # 却下
+        try:
+            embed = interaction.message.embeds[0]
+            user = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            amount = float((embed.fields[1].value).split(" ")[0])
+            embed.fields[3].value = "❌ 却下済み"
+            await interaction.message.edit(embed=embed, view=None)
+            logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to EC for {user.name} ({user.id})")
+        except Exception as e:
+            logger.error(f"Economy Exchange to EC Denial Error: {e}")
+
+# TC -> EC 承認処理
+async def handle_economy_application_exchange_tc(bot, interaction, approved):
+    if interaction.user.id not in ADMIN_IDS:
+        return
+
+    """承認チェック"""
+    if approved == True:
+        # 承認
+        try:
+            importlib.reload(economy)
+            embed = interaction.message.embeds[0]
+            uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            user = bot.get_user(uid)
+            amount = float((embed.fields[1].value).split(" ")[0])
+            new_rate = await economy.confirm_exchange(amount, "tc", user)
+            embed.fields[3].value = f"✅ 承認済み（レート: {new_rate:.4f}）"
+            await interaction.message.edit(embed=embed, view=None)
+            logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to TC for {user.name} ({user.id})")
+        except Exception as e:
+            logger.error(f"Economy Exchange to TC Error: {e}")
+    elif approved == False:
+        # 却下
+        try:
+            embed = interaction.message.embeds[0]
+            user = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            amount = float((embed.fields[1].value).split(" ")[0])
+            embed.fields[3].value = "❌ 却下済み"
+            await interaction.message.edit(embed=embed, view=None)
+            logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to TC for {user.name} ({user.id})")
+        except Exception as e:
+            logger.error(f"Economy Exchange to TC Denial Error: {e}")            
+
 async def handle_reaction_event(bot, payload):
     if payload.user_id not in ADMIN_IDS or str(payload.emoji) != "✅":
         return
@@ -104,7 +170,7 @@ async def handle_reaction_event(bot, payload):
         elif embed.title == "💎 EC購入申請":
             new_rate = await economy.confirm_buy_issue(user_id, amount)
             await message.edit(content=f"✅ **購入完了** (レート: {new_rate:.4f})", embed=None)
-            
+
         logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: {embed.title} for {user_id}")
     except Exception as e:
         logger.error(f"Reaction Process Error: {e}")

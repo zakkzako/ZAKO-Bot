@@ -10,14 +10,15 @@ import jst
 JST = jst.get_jst()
 
 admin_ids_env = os.getenv('ADMIN_ID')
-ADMIN_IDS = [ int(admin_id.strip().replace('"','')) for admin_id in admin_ids_env.split(',') ] if admin_ids_env else []
+"""ADMIN_IDS = [ int(admin_id.strip().replace('"','')) for admin_id in admin_ids_env.split(',') ] if admin_ids_env else []"""
+ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェックがうまくいかないため、一時的にハードコーディングしています。ゆるして  by yamatomato0105
 
-admin_group = app_commands.Group(name="admin", description="[Bot 管理者専用] 管理者用コマンド")
+admin_group = app_commands.Group(name="admin", description="［ Bot 管理者専用 ］ 管理者用コマンド")
 
 def is_admin(user_id):
     return user_id in ADMIN_IDS if ADMIN_IDS else False
 
-@admin_group.command(name="reload", description="[Bot 管理者専用] 最新ファイルを反映します")
+@admin_group.command(name="reload", description="［ Bot 管理者専用 ］ 最新ファイルを反映します")
 async def admin_reload(interaction: discord.Interaction):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("このコマンドを実行するための権限がありません", ephemeral=True)
@@ -32,7 +33,7 @@ async def admin_reload(interaction: discord.Interaction):
     except Exception as e:
         await interaction.response.send_message(f"❌ エラーが発生しました: {e}", ephemeral=True)
 
-@admin_group.command(name="time-signal", description="[Bot 管理者専用] 時報チャンネルを設定します")
+@admin_group.command(name="time-signal", description="［ Bot 管理者専用 ］ 時報チャンネルを設定します")
 async def admin_jikoku(interaction: discord.Interaction):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
@@ -42,7 +43,7 @@ async def admin_jikoku(interaction: discord.Interaction):
     economy.save_json("config.json", config)
     await interaction.response.send_message(f"時報チャンネルを設定しました", ephemeral=True)
 
-@admin_group.command(name="ec-admin", description="[Bot 管理者専用] 申請ログチャンネルを設定します")
+@admin_group.command(name="ec-admin", description="［ Bot 管理者専用 ］ 申請ログチャンネルを設定します")
 async def admin_log(interaction: discord.Interaction):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
@@ -53,40 +54,43 @@ async def admin_log(interaction: discord.Interaction):
     await interaction.response.send_message(f"✅ 申請ログチャンネルを設定しました", ephemeral=True)
 
 
-admin_money_group = app_commands.Group(name="money", description="[Bot 管理者専用] 金銭操作コマンド")
+admin_money_group = app_commands.Group(name="money", description="［ Bot 管理者専用 ］ 金銭操作コマンド")
 admin_group.add_command(admin_money_group)
 
-@admin_money_group.command(name="add", description="[Bot 管理者専用] ユーザーの金額を追加します")
+@admin_money_group.command(name="add", description="［ Bot 管理者専用 ］ ユーザーの所持金を追加します")
+@admin_money_group.describe(user="対象のユーザーのID", amount="追加する金額")
 async def money_add(interaction: discord.Interaction, user: discord.Member, amount: float):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    if not economy.user_exists(user.id):
+    if not economy.user_exists(user):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
-    economy.add_money(user.id, amount)
+    economy.add_money(user, amount)
     await interaction.response.send_message(f"✅ {user.mention} に {amount} を追加しました。", ephemeral=True)
 
-@admin_money_group.command(name="remove", description="[Bot 管理者専用] ユーザーの金額を剥奪します")
+@admin_money_group.command(name="remove", description="［ Bot 管理者専用 ］ ユーザーの所持金を剥奪します")
+@admin_money_group.describe(user="対象のユーザーのID", amount="剥奪する金額")
 async def money_remove(interaction: discord.Interaction, user: discord.Member, amount: float):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    if not economy.user_exists(user.id):
+    if not economy.user_exists(user):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
-    economy.remove_money(user.id, amount)
+    economy.remove_money(user, amount)
     await interaction.response.send_message(f"✅ {user.mention} から {amount} を剥奪しました。", ephemeral=True)
 
-@admin_money_group.command(name="set", description="[Bot 管理者専用] ユーザーの金額を設定します")
+@admin_money_group.command(name="set", description="［ Bot 管理者専用 ］ ユーザーの所持金を設定します")
+@admin_money_group.describe(user="対象のユーザーのID", amount="設定する金額")
 async def money_set(interaction: discord.Interaction, user: discord.Member, amount: float):
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    if not economy.user_exists(user.id):
+    if not economy.user_exists(user):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
-    economy.set_money(user.id, amount)
+    economy.set_money(user, amount)
     await interaction.response.send_message(f"✅ {user.mention} の金額を {amount} に設定しました。", ephemeral=True)
 
 def setup_admin_commands(bot):
