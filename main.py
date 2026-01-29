@@ -7,7 +7,6 @@ import datetime
 import pytz
 from dotenv import load_dotenv
 import core_system
-import updater
 import jst
 import logging
 import views.EconomyApplication as EconomyApplicationViews
@@ -33,7 +32,6 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
     async def setup_hook(self):
         """起動時の初期化とコマンド同期をcore_systemに委譲"""
-        await updater.perform_full_update()
         core_system.register_to_tree(self)
         await core_system.init_system(self)
         await self.tree.sync()
@@ -131,8 +129,8 @@ bot = TakasumiAuxiliaryBot()
 @bot.event
 async def on_ready():
     # 交換申請のビューを追加
-    bot.add_view(EconomyApplicationViews.TC_to_EC(bot=bot))
-    bot.add_view(EconomyApplicationViews.EC_to_TC(bot=bot))
+    bot.add_view(EconomyApplicationViews.TC_to_EC(bot))
+    bot.add_view(EconomyApplicationViews.EC_to_TC(bot))
 
     # ログイン成功メッセージ
     now = jst.now().strftime('%Y/%m/%d %H:%M:%S')
