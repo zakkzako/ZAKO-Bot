@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
 NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
-WORK_COOLDOWN_MINUTES = 20
+WORK_COOLDOWN_MINUTES = 45
 
 async def init_system(bot):
     try:
@@ -185,6 +185,7 @@ def register_to_tree(bot):
         admin_commands.setup_admin_commands(bot)
         economy_commands.setup_economy_commands(bot)
         gambling_commands.setup_gambling_commands(bot)
+        await init_system(bot)
         # 必要に応じて同期も行う
         bot.loop.create_task(bot.tree.sync())
         logger.info("Modules reloaded and tree synced.")

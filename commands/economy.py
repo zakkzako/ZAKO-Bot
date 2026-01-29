@@ -136,7 +136,7 @@ exchange_dev__choices___type = [
     app_commands.Choice(name="EC -> TakasumiBOT コイン", value="ec_to_tc"),
     app_commands.Choice(name="TakasumiBOT コイン -> EC", value="tc_to_ec"),
 ]
-@app_commands.command(name="exchange_on_dev", description="（開発用）交換申請をします")
+@app_commands.command(name="exchange_dev", description="（開発用）交換申請をします")
 @app_commands.describe(type="交換の種類")
 @app_commands.choices(type=exchange_dev__choices___type)
 async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choice[str], amount: float):
@@ -318,8 +318,8 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
     await interaction.response.send_message(embed=embed)
 
 def setup_economy_commands(bot):
-    cmds = [ money, rate, ec_work, economy_stats, exchange, buy_ec, exchange_on_dev ]
-    for c in cmds:
-        if c.name not in [cmd.name for cmd in bot.tree.get_commands()]:
-            bot.tree.add_command(c)
-#う
+    existing = [cmd.name for cmd in bot.tree.get_commands()]
+    cmds = [money, rate, economy_stats, ec_work, exchange, buy_ec, exchange_dev]
+    for cmd in cmds:
+        if cmd.name not in existing:
+            bot.tree.add_command(cmd)

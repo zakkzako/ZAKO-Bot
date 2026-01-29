@@ -173,7 +173,8 @@ class BlackjackView(discord.ui.View):
             await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
 @app_commands.command(name="bj", description="Blackjack をプレイします")
-async def bj_start(interaction: discord.Interaction, amount: float):
+@app_commands.describe(amount="ベット額（EC）")
+async def bj(interaction: discord.Interaction, amount: float):
     if amount <= 0: return await interaction.response.send_message("金額が正しくありません。", ephemeral=True)
     
     # 1. 重複プレイチェック
@@ -203,4 +204,8 @@ async def bj_start(interaction: discord.Interaction, amount: float):
     await interaction.response.send_message(embed=view.create_embed(), view=view)
 
 def setup_gambling_commands(bot):
-    bot.tree.add_command(bj_start)
+    existing = [cmd.name for cmd in bot.tree.get_commands()]
+    cmds = [bj]
+    for cmd in cmds:
+        if cmd.name not in existing:
+            bot.tree.add_command(cmd)
