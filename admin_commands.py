@@ -63,7 +63,7 @@ async def money_add(interaction: discord.Interaction, user: discord.Member, amou
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    if not economy.user_exists(user):
+    if not economy.user_exists(user.id):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
     economy.add_money(user, amount)
@@ -75,7 +75,7 @@ async def money_remove(interaction: discord.Interaction, user: discord.Member, a
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    if not economy.user_exists(user):
+    if not economy.user_exists(user.id):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
     economy.remove_money(user, amount)
@@ -87,7 +87,7 @@ async def money_set(interaction: discord.Interaction, user: discord.Member, amou
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    if not economy.user_exists(user):
+    if not economy.user_exists(user.id):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
     economy.set_money(user, amount)
