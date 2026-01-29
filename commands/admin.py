@@ -8,6 +8,9 @@ import os
 import jst
 import core_system
 import updater
+import logging
+
+logger = logging.getLogger(__name__)
 
 JST = jst.get_jst()
 
@@ -30,17 +33,18 @@ async def admin_reload(interaction: discord.Interaction):
         importlib.reload(core_system)
         importlib.reload(economy)
         core_system.register_to_tree(interaction.client)
-        if commit_hash.local == commit_hash.remote:
-            await interaction.response.send_message(f"✅ すでに最新の状態です\nコミット：`{commit_hash.remote}`", ephemeral=True)
+        if commit_hash['local'] == commit_hash['remote']:
+            await interaction.response.send_message(f"✅ すでに最新の状態です\nコミット：`{commit_hash['remote']}`", ephemeral=True)
             return
         await updater.perform_full_update()
         importlib.reload(core_system)
         importlib.reload(economy)
         core_system.register_to_tree(interaction.client)
         now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
-        await interaction.response.send_message(f"✅ リロード完了 ({now})\nコミット：`{commit_hash.remote}`", ephemeral=True)
+        await interaction.response.send_message(f"✅ リロード完了 ({now})\nコミット：`{commit_hash['remote']}`", ephemeral=True)
     except Exception as e:
         await interaction.response.send_message(f"❌ エラーが発生しました: {e}", ephemeral=True)
+        logger.error(f"Error during admin reload: {e}")
 
 @admin_group.command(name="time-signal", description="［ Bot 管理者専用 ］ 時報チャンネルを設定します")
 async def admin_jikoku(interaction: discord.Interaction):
