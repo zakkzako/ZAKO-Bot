@@ -7,6 +7,7 @@ import datetime
 import pytz
 from dotenv import load_dotenv
 import core_system
+import updater
 import jst
 import logging
 import views.EconomyApplication as EconomyApplicationViews
@@ -32,6 +33,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
     async def setup_hook(self):
         """起動時の初期化とコマンド同期をcore_systemに委譲"""
+        await updater.perform_full_update()
         core_system.register_to_tree(self)
         await core_system.init_system(self)
         await self.tree.sync()

@@ -6,6 +6,8 @@ import datetime
 import pytz
 import os
 import jst
+import core_system
+import updater
 
 JST = jst.get_jst()
 
@@ -24,7 +26,7 @@ async def admin_reload(interaction: discord.Interaction):
         await interaction.response.send_message("このコマンドを実行するための権限がありません", ephemeral=True)
         return
     try:
-        import core_system
+        await updater.perform_full_update()
         importlib.reload(core_system)
         importlib.reload(economy)
         core_system.register_to_tree(interaction.client)
