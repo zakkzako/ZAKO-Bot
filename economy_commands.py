@@ -273,8 +273,6 @@ async def exchange(interaction: discord.Interaction, amount: float):
     else:
         await interaction.followup.send("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
 
-
-
 @app_commands.command(name="buy_ec", description="Takasumi moneyでECを購入申請します（手数料5%）")
 async def buy_ec(interaction: discord.Interaction, amount: float):
     if amount <= 0:
@@ -320,7 +318,7 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
     await interaction.response.send_message(embed=embed)
 
 def setup_economy_commands(bot):
-    cmds = [money, rate, ec_work, economy_stats, exchange, buy_ec]
+    cmds = [ money, rate, ec_work, economy_stats, exchange, buy_ec, exchange_on_dev ]
     for c in cmds:
         if c.name not in [cmd.name for cmd in bot.tree.get_commands()]:
             bot.tree.add_command(c)
