@@ -1,1 +1,6 @@
-# Commands package
+# Command Package
+
+# 必須ファイルです。
+# このファイルは絶対に消さないでください。
+
+# by Yamatomato0105
