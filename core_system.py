@@ -9,10 +9,10 @@ import work
 import updater
 import jikoku
 import economy
-import general_commands
-import admin_commands
-import economy_commands
-import gambling_commands
+import commands.general as general_commands
+import commands.admin as admin_commands
+import commands.economy as economy_commands
+import commands.gambling as gambling_commands
 import jst
 import logging
 
