@@ -175,7 +175,7 @@ async def handle_reaction_event(bot, payload):
     except Exception as e:
         logger.error(f"Reaction Process Error: {e}")
 
-def register_to_tree(bot):
+async def register_to_tree(bot):
     try:
         importlib.reload(general_commands)
         importlib.reload(admin_commands)
