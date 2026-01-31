@@ -26,6 +26,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def check_required_files():
+    """必須ファイルの存在と形式をチェック"""
+    required_files = {
+        "config.json": {},
+        "users.json": {},
+        "economy_data.json": {"total_supply": 0},
+        "blackjack_data.json": {}
+    }
+
+    for file, default_content in required_files.items():
+        if not os.path.exists(file):
+            logger.critical(f"必須ファイル '{file}' が存在しません。Bot を起動できません。")
+            return False
+
+        # JSON形式のチェック
+        if file.endswith(".json"):
+            try:
+                with open(file, "r", encoding="utf-8") as f:
+                    json.load(f)
+            except json.JSONDecodeError:
+                logger.critical(f"必須ファイル '{file}' の形式が不正です。正しい JSON 形式にしてください。")
+                return False
+
+    return True
+
 class TakasumiAuxiliaryBot(commands.Bot):
     def __init__(self):
         """リアクション検知を含む全てのインテントを有効化"""
