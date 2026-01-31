@@ -185,7 +185,7 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
         log_embed.add_field(name="換金額", value=f"{amount} EC")
         log_embed.add_field(name="換算額", value=f"{amount * current_rate:,.0f} コイン")
         log_embed.add_field(name="状態", value="-# 保留中")
-        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.EC_to_TC())
+        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.EC_to_TC(bot=interaction.client))
 
         # [5] ユーザーに応答
         embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
@@ -228,7 +228,7 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
         log_embed.add_field(name="発行額", value=f"{amount} EC")
         log_embed.add_field(name="合計請求額", value=f"{total_money_needed:,.0f} コイン")
         log_embed.add_field(name="状態", value="-# 保留中")
-        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.TC_to_EC())
+        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.TC_to_EC(bot=interaction.client))
 
 @app_commands.command(name="exchange", description="ECを換金申請します（1日2万Moneyまで）")
 async def exchange(interaction: discord.Interaction, amount: float):
