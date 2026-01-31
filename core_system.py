@@ -91,12 +91,14 @@ async def handle_economy_application_exchange_ec(bot, interaction, approved):
         # 承認
         try:
             importlib.reload(economy)
-            embed = interaction.message.embeds[0]
-            uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            data = interaction.message.embeds[0]
+            uid = int((data.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             user = bot.get_user(uid)
-            amount = float((embed.fields[1].value).split(" ")[0])
+            amount = float((data.fields[1].value).split(" ")[0])
             new_rate = await economy.confirm_exchange(amount, "ec", user)
-            embed.fields[3].value = f"✅ 承認済み（レート: {new_rate:.4f}）"
+            embed = discord.Embed.from_dict(data.to_dict())
+            embed['fields'][3]['value'] = f"✅ 承認済み（レート: {new_rate:.4f}）"
+            embed['color'] = 0x11ff11
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to EC for {user.name} ({user.id})")
         except Exception as e:
@@ -105,10 +107,12 @@ async def handle_economy_application_exchange_ec(bot, interaction, approved):
     elif approved == False:
         # 却下
         try:
-            embed = interaction.message.embeds[0]
-            user = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
-            amount = float((embed.fields[1].value).split(" ")[0])
-            embed.fields[3].value = "❌ 却下済み"
+            data = interaction.message.embeds[0]
+            user = int((data.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            amount = float((data.fields[1].value).split(" ")[0])
+            embed = discord.Embed.from_dict(data.to_dict())
+            embed['fields'][3]['value'] = "❌ 却下済み"
+            embed['color'] = 0xff1111
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to EC for {user.name} ({user.id})")
         except Exception as e:
@@ -124,12 +128,14 @@ async def handle_economy_application_exchange_tc(bot, interaction, approved):
         # 承認
         try:
             importlib.reload(economy)
-            embed = interaction.message.embeds[0]
-            uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            data = interaction.message.embeds[0]
+            uid = int((data.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             user = bot.get_user(uid)
-            amount = float((embed.fields[1].value).split(" ")[0])
+            amount = float((data.fields[1].value).split(" ")[0])
             new_rate = await economy.confirm_exchange(amount, "tc", user)
-            embed.fields[3].value = f"✅ 承認済み（レート: {new_rate:.4f}）"
+            embed = discord.Embed.from_dict(data.to_dict())
+            embed['fields'][3]['value'] = f"✅ 承認済み（レート: {new_rate:.4f}）"
+            embed['color'] = 0x11ff11
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to TC for {user.name} ({user.id})")
         except Exception as e:
@@ -137,10 +143,12 @@ async def handle_economy_application_exchange_tc(bot, interaction, approved):
     elif approved == False:
         # 却下
         try:
-            embed = interaction.message.embeds[0]
-            user = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
-            amount = float((embed.fields[1].value).split(" ")[0])
-            embed.fields[3].value = "❌ 却下済み"
+            data = interaction.message.embeds[0]
+            user = int((data.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            amount = float((data.fields[1].value).split(" ")[0])
+            embed = discord.Embed.from_dict(data.to_dict())
+            embed['fields'][3]['value'] = "❌ 却下済み"
+            embed['color'] = 0xff1111
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to TC for {user.name} ({user.id})")
         except Exception as e:
