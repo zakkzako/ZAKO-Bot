@@ -80,7 +80,9 @@ async def money_add(interaction: discord.Interaction, user: discord.Member, amou
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
     economy.add_money(user.id, amount)
-    await interaction.response.send_message(f"✅ {user.mention} に {amount} を追加しました。", ephemeral=True)
+    embed = discord.Embed(description=f"✅ {user.mention} に **{amount} EC** を追加しました。", color=0x00FF00)
+    embed.set_author(name="追加しました", icon_url=Imgs.CHECK)
+    await interaction.response.send_message(embed=embed)
 
 @admin_money_group.command(name="remove", description="［ Bot 管理者専用 ］ ユーザーの所持金を剥奪します")
 @app_commands.describe(user="対象のユーザー", amount="剥奪する金額")
@@ -92,7 +94,9 @@ async def money_remove(interaction: discord.Interaction, user: discord.Member, a
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
     economy.remove_money(user.id, amount)
-    await interaction.response.send_message(f"✅ {user.mention} から {amount} を剥奪しました。", ephemeral=True)
+    embed = discord.Embed(description=f"✅ {user.mention} から **{amount} EC** を剥奪しました。", color=0x00FF00)
+    embed.set_author(name="剥奪しました", icon_url=Imgs.CHECK)
+    await interaction.response.send_message(embed=embed)
 
 @admin_money_group.command(name="set", description="［ Bot 管理者専用 ］ ユーザーの所持金を設定します")
 @app_commands.describe(user="対象のユーザー", amount="設定する金額")
@@ -104,7 +108,9 @@ async def money_set(interaction: discord.Interaction, user: discord.Member, amou
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
     economy.set_money(user.id, amount)
-    await interaction.response.send_message(f"✅ {user.mention} の金額を {amount} に設定しました。", ephemeral=True)
+    embed = discord.Embed(description=f"✅ {user.mention} の所持金を **{amount} EC** に設定しました。", color=0x00FF00)
+    embed.set_author(name="設定しました", icon_url=Imgs.CHECK)
+    await interaction.response.send_message(embed=embed)
 
 def setup_admin_commands(bot):
     existing = [cmd.name for cmd in bot.tree.get_commands()]
