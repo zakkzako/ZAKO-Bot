@@ -152,83 +152,97 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
             await interaction.response.send_message("金額は **0** より大きくしてください。", ephemeral=True)
             return
 
-        # [1] 現在のレートを取得
-        current_rate = await economy.get_current_rate()
-
-        # [2] 制限チェック
-        is_ok, remaining = economy.check_exchange_limit(interaction.user.id, amount, current_rate)
-        if not is_ok:
-            await interaction.response.send_message(f"❌ 上限オーバーです。\n本日の残り枠: {remaining:.0f} Money", ephemeral=True)
-            return
-        
-        # [3] 所持金から回収
-        success, collected = economy.collect_ec_for_exchange(interaction.user.id, amount)
-        if not success:
-            await interaction.response.send_message("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
-            return
-
-        # [4] 申請チャンネルに送信
-        config = economy.load_json("config.json", {})
-        log_ch = None
         try:
-            log_ch = interaction.client.fetch_channel(config.get("log_channel", 1457893837824331786))
-        except discord.NotFound:
-            await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
-            logger.error(f"Failed to fetch log channel for exchange_dev by user {interaction.user.id}")
-            return
-        if not log_ch:
-            await interaction.response.send_message("❌ 申請処理中に問題が発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
-            logger.error(f"Log channel not found for exchange_dev by user {interaction.user.id}")
-            return
-        log_embed = discord.Embed(title="交換申請 (EC -> TC)", color=0xffa500)
-        log_embed.add_field(name="ユーザー", value=interaction.user.mention)
-        log_embed.add_field(name="換金額", value=f"{amount} EC")
-        log_embed.add_field(name="換算額", value=f"{amount * current_rate:,.0f} コイン")
-        log_embed.add_field(name="状態", value="-# 保留中")
-        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.EC_to_TC(bot=interaction.client))
+            # [1] 現在のレートを取得
+            current_rate = await economy.get_current_rate()
 
-        # [5] ユーザーに応答
-        embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
-        embed.description = f"**{amount} EC**（約 {amount * current_rate:,.0f} コイン）の換金申請を受け付けました。\n管理者が承認するまでお待ちください。"
-        embed.set_footer(text="手数料10%をあわせた金額を徴収しました")
+            # [2] 制限チェック
+            is_ok, remaining = economy.check_exchange_limit(interaction.user.id, amount, current_rate)
+            if not is_ok:
+                await interaction.response.send_message(f"❌ 上限オーバーです。\n本日の残り枠: {remaining:.0f} Money", ephemeral=True)
+                return
+
+            # [3] 所持金から回収
+            success, collected = economy.collect_ec_for_exchange(interaction.user.id, amount)
+            if not success:
+                await interaction.response.send_message("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
+                return
+
+            # [4] 申請チャンネルに送信
+            config = economy.load_json("config.json", {})
+            log_ch = None
+            try:
+                log_ch = await interaction.client.fetch_channel(config.get("log_channel", 1457893837824331786))
+            except discord.NotFound:
+                await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
+                logger.error(f"Failed to fetch log channel for exchange_dev by user {interaction.user.id}")
+                return
+            if not log_ch:
+                await interaction.response.send_message("❌ 申請処理中に問題が発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
+                logger.error(f"Log channel not found for exchange_dev by user {interaction.user.id}")
+                return
+            log_embed = discord.Embed(title="交換申請 (EC -> TC)", color=0xffa500)
+            log_embed.add_field(name="ユーザー", value=interaction.user.mention)
+            log_embed.add_field(name="換金額", value=f"{amount} EC")
+            log_embed.add_field(name="換算額", value=f"{amount * current_rate:,.0f} コイン")
+            log_embed.add_field(name="状態", value="-# 保留中")
+            await log_ch.send(embed=log_embed, view=EconomyApplicationViews.EC_to_TC())
+
+            # [5] ユーザーに応答
+            embed = discord.Embed(color=0x00ff00, description=f"**{amount} EC**（約 {amount * current_rate:,.0f} コイン）の交換申請を受け付けました。\n管理者が承認するまでお待ちください。")
+            embed.set_author(name="交換申請を受け付けました", icon_url=Imgs.CHECK)
+            embed.set_footer(text="手数料10%をあわせた金額を徴収しました")
+            await interaction.response.send_message(embed=embed)
+        except Exception as e:
+            await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。\n-# エラー内容: " + str(e), ephemeral=True)
+            logger.error(f"Error during exchange_dev (EC to TC) by user {interaction.user.id}: {e}")
 
     # TakasumiBOT コイン -> EC
     elif type.value == "tc_to_ec":
         if amount <= 0:
             await interaction.response.send_message("金額は **0** より大きくしてください。", ephemeral=True)
             return
-        
-        # [1] 現在のレートを取得
-        current_rate = await economy.get_current_rate()
 
-        # [2] 必要な情報を計算
-        total_money_needed = amount * current_rate * 1.10  # 10% 手数料込み
-        has_assets, current_assets = await economy.check_takasumi_assets(interaction.user.id, amount * current_rate)
-        if not has_assets:
-            embed_no_assets = discord.Embed(description=f"信頼性確保のため、換金相当額の1.5倍（{math.ceil(amount * current_rate * 1.5)} コイン）の資産が必要です。", color=0xff0000)
-            embed_no_assets.set_author(name="TakasumiBOT コイン が不足しています", icon_url=Imgs.CROSS)
-            await interaction.response.send_message(embed=embed_no_assets, ephemeral=True)
-            return
-
-        # [3] 申請チャンネルに送信
-        config = economy.load_json("config.json", {})
-        log_ch = None
         try:
-            log_ch = interaction.client.fetch_channel(config.get("log_channel", 1457893837824331786))
-        except discord.NotFound:
-            await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
-            logger.error(f"Failed to fetch log channel for exchange_dev by user {interaction.user.id}")
-            return
-        if not log_ch:
-            await interaction.response.send_message("❌ 申請処理中に問題が発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
-            logger.error(f"Log channel not found for exchange_dev by user {interaction.user.id}")
-            return
-        log_embed = discord.Embed(title="交換申請 (TC -> EC)", color=0x00ffff)
-        log_embed.add_field(name="ユーザー", value=interaction.user.mention)
-        log_embed.add_field(name="発行額", value=f"{amount} EC")
-        log_embed.add_field(name="合計請求額", value=f"{total_money_needed:,.0f} コイン")
-        log_embed.add_field(name="状態", value="-# 保留中")
-        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.TC_to_EC(bot=interaction.client))
+            # [1] 現在のレートを取得
+            current_rate = await economy.get_current_rate()
+
+            # [2] 必要な情報を計算
+            total_money_needed = amount * current_rate * 1.10  # 10% 手数料込み
+            has_assets, current_assets = await economy.check_takasumi_assets(interaction.user.id, amount * current_rate)
+            if not has_assets:
+                embed_no_assets = discord.Embed(description=f"信頼性確保のため、換金相当額の1.5倍（{math.ceil(amount * current_rate * 1.5)} コイン）の資産が必要です。", color=0xff0000)
+                embed_no_assets.set_author(name="TakasumiBOT コイン が不足しています", icon_url=Imgs.CROSS)
+                await interaction.response.send_message(embed=embed_no_assets, ephemeral=True)
+                return
+
+            # [3] 申請チャンネルに送信
+            config = economy.load_json("config.json", {})
+            log_ch = None
+            try:
+                log_ch = await interaction.client.fetch_channel(config.get("log_channel", 1457893837824331786))
+            except discord.NotFound:
+                await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
+                logger.error(f"Failed to fetch log channel for exchange_dev by user {interaction.user.id}")
+                return
+            if not log_ch:
+                await interaction.response.send_message("❌ 申請処理中に問題が発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
+                logger.error(f"Log channel not found for exchange_dev by user {interaction.user.id}")
+                return
+            log_embed = discord.Embed(title="交換申請 (TC -> EC)", color=0x00ffff)
+            log_embed.add_field(name="ユーザー", value=interaction.user.mention)
+            log_embed.add_field(name="発行額", value=f"{amount} EC")
+            log_embed.add_field(name="合計請求額", value=f"{total_money_needed:,.0f} コイン")
+            log_embed.add_field(name="状態", value="-# 保留中")
+            await log_ch.send(embed=log_embed, view=EconomyApplicationViews.TC_to_EC())
+
+            # [4] ユーザーに応答
+            embed = discord.Embed(color=0x00ff00, description=f"**{amount} EC**（合計請求額: {total_money_needed:,.0f} コイン）の購入申請を受け付けました。\n管理者に必要金額を送金してください。入金確認後、ECが発行されます。")
+            embed.set_author(name="購入申請を受け付けました", icon_url=Imgs.CHECK)
+            await interaction.response.send_message(embed=embed)
+        except Exception as e:
+            await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。\n-# エラー内容: " + str(e), ephemeral=True)
+            logger.error(f"Error during exchange_dev (TC to EC) by user {interaction.user.id}: {e}")
 
 @app_commands.command(name="exchange", description="ECを換金申請します（1日2万Moneyまで）")
 async def exchange(interaction: discord.Interaction, amount: float):
