@@ -84,7 +84,6 @@ def remove_money(user_id, amount):
     if users[uid]["balance"] < amount: return False
     users[uid]["balance"] -= amount
     save_json(USER_DATA_FILE, users)
-    return True
 
 def set_money(user_id, amount):
     """ユーザーのEC残高を設定する"""

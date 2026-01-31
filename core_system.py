@@ -96,9 +96,10 @@ async def handle_economy_application_exchange_ec(bot, interaction, approved):
             user = bot.get_user(uid)
             amount = float((data.fields[1].value).split(" ")[0])
             new_rate = await economy.confirm_exchange(amount, "ec", user)
-            embed = discord.Embed.from_dict(data.to_dict())
+            embed = data.to_dict()
             embed['fields'][3]['value'] = f"✅ 承認済み（レート: {new_rate:.4f}）"
             embed['color'] = 0x11ff11
+            embed = discord.Embed.from_dict(embed)
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to EC for {user.name} ({user.id})")
         except Exception as e:
@@ -110,9 +111,11 @@ async def handle_economy_application_exchange_ec(bot, interaction, approved):
             data = interaction.message.embeds[0]
             user = int((data.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             amount = float((data.fields[1].value).split(" ")[0])
-            embed = discord.Embed.from_dict(data.to_dict())
+            economy.add_money(user, amount)
+            embed = data.to_dict()
             embed['fields'][3]['value'] = "❌ 却下済み"
             embed['color'] = 0xff1111
+            embed = discord.Embed.from_dict(embed)
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to EC for {user.name} ({user.id})")
         except Exception as e:
@@ -133,9 +136,10 @@ async def handle_economy_application_exchange_tc(bot, interaction, approved):
             user = bot.get_user(uid)
             amount = float((data.fields[1].value).split(" ")[0])
             new_rate = await economy.confirm_exchange(amount, "tc", user)
-            embed = discord.Embed.from_dict(data.to_dict())
+            embed = data.to_dict()
             embed['fields'][3]['value'] = f"✅ 承認済み（レート: {new_rate:.4f}）"
             embed['color'] = 0x11ff11
+            embed = discord.Embed.from_dict(embed)
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to TC for {user.name} ({user.id})")
         except Exception as e:
@@ -146,13 +150,14 @@ async def handle_economy_application_exchange_tc(bot, interaction, approved):
             data = interaction.message.embeds[0]
             user = int((data.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             amount = float((data.fields[1].value).split(" ")[0])
-            embed = discord.Embed.from_dict(data.to_dict())
+            embed = data.to_dict()
             embed['fields'][3]['value'] = "❌ 却下済み"
             embed['color'] = 0xff1111
+            embed = discord.Embed.from_dict(embed)
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to TC for {user.name} ({user.id})")
         except Exception as e:
-            logger.error(f"Economy Exchange to TC Denial Error: {e}")            
+            logger.error(f"Economy Exchange to TC Denial Error: {e}")
 
 async def handle_reaction_event(bot, payload):
     if payload.user_id not in ADMIN_IDS or str(payload.emoji) != "✅":
