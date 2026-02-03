@@ -46,6 +46,7 @@ intents.guild_messages = True
 client = discord.Client(intents=intents)
 
 http_session: aiohttp.ClientSession | None = None
+is_enabled = False
 is_shutting_down = False
 
 async def network_check() -> bool:
@@ -87,6 +88,14 @@ async def shutdown_bot():
     await asyncio.sleep(0.5)
     sys.exit(0)
 
+def enable_bot():
+    global is_enabled
+    is_enabled = True
+
+def disable_bot():
+    global is_enabled
+    is_enabled = False
+
 @tasks.loop(seconds=15)
 async def check_reminders_task():
     if is_shutting_down:
@@ -99,6 +108,8 @@ async def check_reminders_task():
     for r in reminders:
         target_ts = datetime.datetime.fromisoformat(r['target_time']).timestamp()
         if now_ts >= target_ts:
+            if not is_enabled:
+                continue
             try:
                 channel = await client.fetch_channel(r['channel_id'])
                 user_mention = f"<@{r['user_id']}>"
@@ -191,13 +202,30 @@ async def on_message(message: discord.Message):
                 return
             await message.reply("Shutdown initiated.\nThe bot will go offline and process will stop shortly.", mention_author=False)
             await shutdown_bot()
+        elif message.content.strip() == '!bot enable':
+            if is_enabled:
+                await message.reply("Bot is already enabled.", mention_author=False)
+                return
+            enable_bot()
+            await message.reply("Bot has been enabled.", mention_author=False)
+        elif message.content.strip() == '!bot disable':
+            if not is_enabled:
+                await message.reply("Bot is already disabled.", mention_author=False)
+                return
+            disable_bot()
+            await message.reply("Bot has been disabled.", mention_author=False)
+        return
 
     if message.author.bot and message.author.id == 981314695543783484:
+        if not is_enabled:
+            return
         await detect_work_message(message)
 
 @client.event
 async def on_message_edit(before, after):
     if after.author.bot and after.author.id == 981314695543783484:
+        if not is_enabled:
+            return
         await detect_work_message(after)
 
 @client.event
