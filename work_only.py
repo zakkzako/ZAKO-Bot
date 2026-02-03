@@ -140,17 +140,13 @@ async def detect_work_message(message: discord.Message):
         return
 
     embed = message.embeds[0]
-    if not embed.author or not embed.description:
-        return
-    if not embed.author.name.endswith('コインを手に入れました'):
+    if not embed.description:
         return
     if not embed.description.startswith('給料: '):
         return
 
-    logger.debug(f"message.interaction_metadata.name: {message.interaction_metadata.get('name', 'N/A')}")
-
     user = None
-    if hasattr(message, 'interaction_metadata') and message.interaction_metadata:
+    if message.interaction_metadata:
         user = message.interaction_metadata.user
 
     if user is None:
@@ -196,19 +192,19 @@ async def on_message(message: discord.Message):
         return
 
     if message.author.id == 1160453651660288041:
-        if message.content.strip() == '!shutdown -y':
+        if message.content.strip() == 'si!shutdown -y':
             if is_shutting_down:
                 await message.reply("Shutdown is already in progress.", mention_author=False)
                 return
             await message.reply("Shutdown initiated.\nThe bot will go offline and process will stop shortly.", mention_author=False)
             await shutdown_bot()
-        elif message.content.strip() == '!bot enable':
+        elif message.content.strip() == 'si!bot enable':
             if is_enabled:
                 await message.reply("Bot is already enabled.", mention_author=False)
                 return
             enable_bot()
             await message.reply("Bot has been enabled.", mention_author=False)
-        elif message.content.strip() == '!bot disable':
+        elif message.content.strip() == 'si!bot disable':
             if not is_enabled:
                 await message.reply("Bot is already disabled.", mention_author=False)
                 return
