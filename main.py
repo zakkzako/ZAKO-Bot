@@ -16,7 +16,7 @@ JST = jst.get_jst()
 
 # ログ設定
 logging.basicConfig(
-    level=logging.INFO,  # ログレベルを INFO に設定
+    level=logging.DEBUG,  # ログレベルを DEBUG に設定
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
         # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato
@@ -139,9 +139,6 @@ async def on_ready():
 discord_bot_logger = DiscordBotLogger()
 logger.addHandler(discord_bot_logger)
 logging.getLogger('discord').addHandler(discord_bot_logger)
-logging.getLogger('discord.ext.commands').addHandler(discord_bot_logger)
-logging.getLogger('discord.http').addHandler(discord_bot_logger)
-logging.getLogger('discord.gateway').addHandler(discord_bot_logger)
 
 @bot.event
 async def on_error(event_method, *args, **kwargs):
