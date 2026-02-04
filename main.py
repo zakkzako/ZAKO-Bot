@@ -102,11 +102,11 @@ class DiscordBotLogger(logging.Handler):
     def emit(self, record):
         log_entry = self.format(record)
         if log_entry.startswith('【20'):
-            log_entry = f"```js\n{log_entry}\n```\n** **"
+            log_entry = f"```js\n{log_entry}\n```"
         else:
             log_entry = f"```py\n{log_entry}"
             if len(log_entry) > 1900:
-                log_entry = log_entry[:1900] + '  ...\n```\n［詳細はコンソールを参照してください］\n** **'
+                log_entry = log_entry[:1900] + '  ...\n```\n［詳細はコンソールを参照してください］'
             else:
                 log_entry += '\n```'
         level = record.levelname
