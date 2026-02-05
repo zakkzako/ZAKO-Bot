@@ -59,9 +59,16 @@ async def check_reminders(bot):
             if channel and user:
                 try: 
                     notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
-                    if notification_type == NOTIFICATION_TYPE_WORK:
+                    
+                    # --- ここから通知メッセージの分岐 ---
+                    if notification_type == 'unemployment':
+                        # 失業保険の通知（ここを修正）
+                        await channel.send(f"{user.mention} 失業保険の期限が切れました！`/work` が可能です。")
+                        
+                    elif notification_type == NOTIFICATION_TYPE_WORK:
                         # 内部workコマンドの通知
                         await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1458950836456657064> を実行できます！")
+                        
                     else:
                         # 外部bot（TakasumiBOT）のwork検知による通知
                         await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
@@ -72,8 +79,6 @@ async def check_reminders(bot):
     with open("reminders.json", "w") as f:
         json.dump(updated_queue, f, indent=4)
 
-    if item.get('notification_type') == 'unemployment':
-        await channel.send(f"<@{item['user_id']}> 失業保険が失効しました")
 
 
 async def process_message_event(bot, message):
