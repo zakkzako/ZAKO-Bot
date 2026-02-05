@@ -73,7 +73,7 @@ async def check_reminders(bot):
         json.dump(updated_queue, f, indent=4)
 
     if item.get('notification_type') == 'unemployment':
-        await channel.send(f"<@{item['user_id']}> 失業保険の期限です！お仕事が再開できます。")
+        await channel.send(f"<@{item['user_id']}> 失業保険の期限が切れました")
 
 
 async def process_message_event(bot, message):
