@@ -10,6 +10,7 @@ import core_system
 import jst
 import logging
 import views.EconomyApplication as EconomyApplicationViews
+import device_monitor
 
 load_dotenv()
 JST = jst.get_jst()
@@ -37,6 +38,13 @@ class TakasumiAuxiliaryBot(commands.Bot):
         await self.tree.sync()
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
+        self.device_status_loop.start()
+
+    @tasks.loop(minutes=10)
+    async def device_status_loop(self):
+        """スマホのステータスを更新"""
+        importlib.reload(device_monitor) # 修正を即時反映できるようリロード
+        await device_monitor.update_device_status(self)
 
     @tasks.loop(seconds=30)
     async def check_timer_loop(self):
