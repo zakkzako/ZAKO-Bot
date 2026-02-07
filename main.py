@@ -32,13 +32,18 @@ class TakasumiAuxiliaryBot(commands.Bot):
         super().__init__(command_prefix='/', intents=discord.Intents.all())
 
     async def setup_hook(self):
-        """起動時の初期化とコマンド同期をcore_systemに委譲"""
+        """起動時の初期化"""
         core_system.register_to_tree(self)
-        await core_system.init_system(self)
         await self.tree.sync()
+        # ループを開始
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
-        self.device_status_loop.start()
+        try:
+            await device_monitor.update_device_status(self)
+        except Exception as e:
+            logger.error(f"Initial Status Update Error: {e}")     
+        self.device_status_loop.start() # 1回目完了後に定期実行を開始
+
 
     @tasks.loop(minutes=10)
     async def device_status_loop(self):

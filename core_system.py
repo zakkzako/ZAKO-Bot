@@ -28,11 +28,6 @@ NOTIFICATION_TYPE_WORK = 'work'
 NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
 WORK_COOLDOWN_MINUTES = 20
 
-async def init_system(bot):
-    try:
-        await bot.tree.sync()
-    except Exception as e:
-        logger.error(f"Sync Error: {e}")
 
 async def check_reminders(bot):
     await updater.perform_full_update()
@@ -195,7 +190,7 @@ def register_to_tree(bot):
         economy_commands.setup_economy_commands(bot)
         gambling_commands.setup_gambling_commands(bot)
         # 必要に応じて同期も行う
-        bot.loop.create_task(bot.tree.sync())
-        logger.info("Modules reloaded and tree synced.")
+        #bot.loop.create_task(bot.tree.sync())
+        logger.info("Modules reloaded")
     except Exception as e:
         logger.error(f"Registration Error: {e}")
