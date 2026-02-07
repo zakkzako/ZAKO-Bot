@@ -130,7 +130,7 @@ class DiscordBotLogger(logging.Handler):
             if level in self.webhook:
                 self.webhook[level].send(message)
         except Exception as e:
-            logger.error(f"Failed to send log via webhook: {e}")
+            print(f"[Webhook Logging Error] Failed to send log via webhook: {e}")
 
 bot = TakasumiAuxiliaryBot()
 
@@ -147,9 +147,6 @@ async def on_ready():
 discord_bot_logger = DiscordBotLogger()
 logger.addHandler(discord_bot_logger)
 logging.getLogger('discord').addHandler(discord_bot_logger)
-logging.getLogger('discord.ext.commands').addHandler(discord_bot_logger)
-logging.getLogger('discord.http').addHandler(discord_bot_logger)
-logging.getLogger('discord.gateway').addHandler(discord_bot_logger)
 
 @bot.event
 async def on_error(event_method, *args, **kwargs):
