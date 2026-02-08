@@ -47,7 +47,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
     @tasks.loop(minutes=10)
     async def device_status_loop(self):
-        """スマホのステータスを更新"""
+        """スマホのステータス情報チャンネルを更新"""
         importlib.reload(device_monitor) # 修正を即時反映できるようリロード
         await device_monitor.update_device_status(self)
 
