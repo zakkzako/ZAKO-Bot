@@ -17,13 +17,14 @@ JST = jst.get_jst()
 
 # ログ設定
 logging.basicConfig(
-    level=logging.INFO,  # ログレベルを INFO に設定
+    level=logging.INFO,  # ログレベルを! INFO に!設定!
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
         # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato              ↑結局どうなったんだ🤔
     ]
 )
 logger = logging.getLogger(__name__)
+
 
 class TakasumiAuxiliaryBot(commands.Bot):
     def __init__(self):
