@@ -20,8 +20,7 @@ logging.basicConfig(
     level=logging.INFO,  # ログレベルを INFO に設定
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
-        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato
-        logging.StreamHandler()  # コンソールに出力
+        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato              ↑結局どうなったんだ🤔
     ]
 )
 logger = logging.getLogger(__name__)
@@ -55,7 +54,6 @@ class TakasumiAuxiliaryBot(commands.Bot):
     async def check_timer_loop(self):
         """リマインダーチェック"""
         try:
-            # ここに await を追加しました！
             await core_system.check_reminders(self)
         except Exception as e:
             logger.error(f"Loop Error: {e}")
