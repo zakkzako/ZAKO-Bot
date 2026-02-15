@@ -5,7 +5,7 @@ import pytz
 import importlib
 import os
 import json
-import work
+import notification
 import updater
 import jikoku
 import economy
@@ -57,18 +57,18 @@ async def check_reminders(bot):
             channel = bot.get_channel(r.get('channel_id'))
             user = bot.get_user(r['user_id'])
             if channel and user:
-                try: 
+                try:
                     notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
-                    
+
                     # --- ここから通知メッセージの分岐 ---
                     if notification_type == 'unemployment':
                         # 失業保険の通知（ここを修正）
                         await channel.send(f"{user.mention} 失業保険の期限が切れました！`/work` が可能です。")
-                        
+
                     elif notification_type == NOTIFICATION_TYPE_WORK:
                         # 内部workコマンドの通知
                         await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1458950836456657064> を実行できます！")
-                        
+
                     else:
                         # 外部bot（TakasumiBOT）のwork検知による通知
                         await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
@@ -87,8 +87,18 @@ async def process_message_event(bot, message):
             desc = embed.description or ""
             fields_text = "".join([f.value for f in embed.fields])
             if "給料:" in desc or "給料:" in fields_text:
-                importlib.reload(work)
-                await work.handle_work_detection(bot, message, embed)
+                importlib.reload(notification)
+                await notification.handle_work_detection(bot, message, embed)
+            elif "失業保険" in desc and "購入しました" in desc:
+                # ユーザー特定ロジックは既存のものを流用（適宜変数名を合わせてください）
+                user = None
+                if message.interaction_metadata: user = message.interaction_metadata.user
+                elif message.mentions: user = message.mentions[0]
+
+                if user:
+                    importlib.reload(notification)
+                    await notification.handle_unemployment_detection(bot, message, user, desc)
+                    return
 
 # EC -> TC 承認処理
 async def handle_economy_application_exchange_ec(bot, interaction, approved):
