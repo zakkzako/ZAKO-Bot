@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # Notification type constants
 NOTIFICATION_TYPE_WORK = 'work'
 NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
+NOTIFICATION_TYPE_UNEMPLOYMENT_INSURANCE = 'unemployment_insurance'
 WORK_COOLDOWN_MINUTES = 20
 
 async def init_system(bot):
@@ -61,17 +62,19 @@ async def check_reminders(bot):
                     notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
 
                     # --- ここから通知メッセージの分岐 ---
-                    if notification_type == 'unemployment':
-                        # 失業保険の通知（ここを修正）
-                        await channel.send(f"{user.mention} 失業保険の期限が切れました！`/work` が可能です。")
+                    if notification_type == NOTIFICATION_TYPE_UNEMPLOYMENT_INSURANCE:
+                        # 失業保険（TakasumiBOT）の通知
+                        await channel.send(f"{user.mention} 失業保険が間もなく失効します\n</pay:1132518157119135775> で失業保険を購入しましょう。")
 
                     elif notification_type == NOTIFICATION_TYPE_WORK:
                         # 内部workコマンドの通知
-                        await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1458950836456657064> を実行できます！")
+                        await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
 
-                    else:
+                    elif notification_type == NOTIFICATION_TYPE_EXTERNAL_WORK:
                         # 外部bot（TakasumiBOT）のwork検知による通知
                         await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
+                    else:
+                        raise ValueError(f"Unknown notification type: {notification_type}")
                 except Exception as e:
                     logger.error(f"Notification send error: {e}")
             continue
@@ -163,7 +166,7 @@ async def handle_economy_application_exchange_tc(bot, interaction, approved):
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to TC for {user.name} ({user.id})")
         except Exception as e:
-            logger.error(f"Economy Exchange to TC Denial Error: {e}")            
+            logger.error(f"Economy Exchange to TC Denial Error: {e}")
 
 async def handle_reaction_event(bot, payload):
     if payload.user_id not in ADMIN_IDS or str(payload.emoji) != "✅":
