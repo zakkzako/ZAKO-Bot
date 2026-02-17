@@ -15,6 +15,7 @@ import economy_commands
 import gambling_commands
 import jst
 import logging
+from _notification_types_ import NOTIFICATION_TYPES
 
 JST = jst.get_jst()
 admin_id_env = os.getenv('ADMIN_ID')
@@ -24,9 +25,6 @@ ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェッ�
 logger = logging.getLogger(__name__)
 
 # Notification type constants
-NOTIFICATION_TYPE_WORK = 'work'
-NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
-NOTIFICATION_TYPE_UNEMPLOYMENT_INSURANCE = 'unemployment_insurance'
 WORK_COOLDOWN_MINUTES = 20
 
 async def init_system(bot):
@@ -59,20 +57,23 @@ async def check_reminders(bot):
             user = bot.get_user(r['user_id'])
             if channel and user:
                 try:
-                    notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
+                    notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
 
                     # --- ここから通知メッセージの分岐 ---
-                    if notification_type == NOTIFICATION_TYPE_UNEMPLOYMENT_INSURANCE:
+                    if notification_type == NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE:
                         # 失業保険（TakasumiBOT）の通知
                         await channel.send(f"{user.mention} 失業保険が間もなく失効します\n</pay:1132518157119135775> で失業保険を購入しましょう。")
 
-                    elif notification_type == NOTIFICATION_TYPE_WORK:
+                    elif notification_type == NOTIFICATION_TYPES.WORK:
                         # 内部workコマンドの通知
                         await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
 
-                    elif notification_type == NOTIFICATION_TYPE_EXTERNAL_WORK:
+                    elif notification_type == NOTIFICATION_TYPES.EXTERNAL_WORK:
                         # 外部bot（TakasumiBOT）のwork検知による通知
                         await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
+                    elif notification_type == NOTIFICATION_TYPES.STEAL:
+                        # 外部bot（TakasumiBOT）のsteal検知による通知
+                        await channel.send(f"{user.mention} stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
                     else:
                         raise ValueError(f"Unknown notification type: {notification_type}")
                 except Exception as e:
@@ -81,8 +82,6 @@ async def check_reminders(bot):
         updated_queue.append(r)
     with open("reminders.json", "w") as f:
         json.dump(updated_queue, f, indent=4)
-
-
 
 async def process_message_event(bot, message):
     if message.author.bot and message.embeds:
@@ -97,11 +96,12 @@ async def process_message_event(bot, message):
                 user = None
                 if message.interaction_metadata: user = message.interaction_metadata.user
                 elif message.mentions: user = message.mentions[0]
-
                 if user:
                     importlib.reload(notification)
                     await notification.handle_unemployment_detection(bot, message, user, desc)
-                    return
+            elif "から盗めませんでした" in desc or "から盗みました" in desc:
+                importlib.reload(notification)
+                await notification.handle_steal_detection(bot, message)
 
 # EC -> TC 承認処理
 async def handle_economy_application_exchange_ec(bot, interaction, approved):
