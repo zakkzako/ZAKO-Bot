@@ -25,7 +25,7 @@ ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェッ�
 logger = logging.getLogger(__name__)
 
 # ZAKO-Bot Community の 失業保険失効通知専用チャンネル のキャッシュ
-UNEMPLOYMENT_NOTIFY_CHANNEL = None
+UNEMPLOYMENT_NOTIFY_CHANNEL: discord.TextChannel | None = None
 
 # Notification type constants
 WORK_COOLDOWN_MINUTES = 20
@@ -48,13 +48,13 @@ async def check_reminders(bot):
     now = datetime.datetime.now(JST)
     if not os.path.exists("reminders.json"):
         return
+    queue: list[dict] = []
     with open("reminders.json", "r") as f:
         try: queue = json.load(f)
         except json.JSONDecodeError:
             logger.warning("JSON Decode Error in reminders.json")
-            queue = []
 
-    updated_queue = []
+    updated_queue: list[dict] = []
     for r in queue:
         target_time = datetime.datetime.fromisoformat(r['target_time'])
         if now >= target_time:
