@@ -95,9 +95,13 @@ async def handle_unemployment_detection(bot, message, user, description):
         # 失効の1分前に通知するために1分引く
         notification_tyme = target_time - datetime.timedelta(minutes=1)
 
+        target_channel = message.channel.id
+        if message.guild.id == 1455450215313309763:
+            target_channel = 1473864813506465903
+
         new_data = {
             'user_id': user.id,
-            'channel_id': message.channel.id,
+            'channel_id': target_channel,
             'target_time': notification_tyme.isoformat(),
             'notification_type': NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE
         }

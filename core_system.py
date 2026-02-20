@@ -24,10 +24,15 @@ ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェッ�
 
 logger = logging.getLogger(__name__)
 
+# ZAKO-Bot Community の 失業保険失効通知専用チャンネル のキャッシュ
+UNEMPLOYMENT_NOTIFY_CHANNEL = None
+
 # Notification type constants
 WORK_COOLDOWN_MINUTES = 20
 
 async def init_system(bot):
+    global UNEMPLOYMENT_NOTIFY_CHANNEL
+    UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1455450215313309763) or await bot.fetch_channel(1455450215313309763)
     try:
         await bot.tree.sync()
     except Exception as e:
@@ -53,27 +58,29 @@ async def check_reminders(bot):
     for r in queue:
         target_time = datetime.datetime.fromisoformat(r['target_time'])
         if now >= target_time:
-            channel = bot.get_channel(r.get('channel_id'))
-            user = bot.get_user(r['user_id'])
+            channel = bot.get_channel(r.get('channel_id')) or bot.fetch_channel(r.get('channel_id'))
+            user = r['user_id']
             if channel and user:
                 try:
                     notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
 
                     # --- ここから通知メッセージの分岐 ---
                     if notification_type == NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE:
+                        if channel.guild.id == 1455450215313309763:
+                            channel = UNEMPLOYMENT_NOTIFY_CHANNEL
                         # 失業保険（TakasumiBOT）の通知
-                        await channel.send(f"{user.mention} 失業保険が間もなく失効します\n</pay:1132518157119135775> で失業保険を購入しましょう。")
+                        await channel.send(f"<@{user}> 失業保険が間もなく失効します\n</pay:1132518157119135775> で失業保険を購入しましょう。")
 
                     elif notification_type == NOTIFICATION_TYPES.WORK:
                         # 内部workコマンドの通知
-                        await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
+                        await channel.send(f"<@{user}> `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
 
                     elif notification_type == NOTIFICATION_TYPES.EXTERNAL_WORK:
                         # 外部bot（TakasumiBOT）のwork検知による通知
-                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
+                        await channel.send(f"<@{user}> workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
                     elif notification_type == NOTIFICATION_TYPES.STEAL:
                         # 外部bot（TakasumiBOT）のsteal検知による通知
-                        await channel.send(f"{user.mention} stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
+                        await channel.send(f"<@{user}> stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
                     else:
                         raise ValueError(f"Unknown notification type: {notification_type}")
                 except Exception as e:
