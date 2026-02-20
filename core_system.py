@@ -32,7 +32,7 @@ WORK_COOLDOWN_MINUTES = 20
 
 async def init_system(bot):
     global UNEMPLOYMENT_NOTIFY_CHANNEL
-    UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1455450215313309763) or await bot.fetch_channel(1455450215313309763)
+    UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1473864813506465903) or await bot.fetch_channel(1473864813506465903)
     try:
         await bot.tree.sync()
     except Exception as e:
