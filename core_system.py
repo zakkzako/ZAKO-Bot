@@ -66,10 +66,11 @@ async def check_reminders(bot):
 
                     # --- ここから通知メッセージの分岐 ---
                     if notification_type == NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE:
-                        if channel.guild.id == 1455450215313309763:
-                            channel = UNEMPLOYMENT_NOTIFY_CHANNEL
                         # 失業保険（TakasumiBOT）の通知
-                        await channel.send(f"<@{user}> 失業保険が間もなく失効します\n</pay:1132518157119135775> で失業保険を購入しましょう。")
+                        if channel.guild.id == 1455450215313309763:
+                            await channel.send(f"<@{user}> 失業保険が間もなく失効します\n<#1455515562255056948> で </pay:1132518157119135775> を実行して失業保険を購入しましょう。")
+                        else:
+                            await channel.send(f"<@{user}> 失業保険が間もなく失効します\n</pay:1132518157119135775> を実行して失業保険を購入しましょう。")
 
                     elif notification_type == NOTIFICATION_TYPES.WORK:
                         # 内部workコマンドの通知
