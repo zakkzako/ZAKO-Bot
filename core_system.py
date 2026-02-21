@@ -15,6 +15,7 @@ import economy_commands
 import gambling_commands
 import jst
 import logging
+import notification_settings
 
 JST = jst.get_jst()
 admin_id_env = os.getenv('ADMIN_ID')
@@ -28,6 +29,33 @@ NOTIFICATION_TYPE_WORK = 'work'
 NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
 WORK_COOLDOWN_MINUTES = 20
 
+def should_send_notification(user_id: int, notification_type: str) -> bool:
+    """
+    ユーザーの設定に基づいて、通知を送るべきかを判定
+    
+    Args:
+        user_id: Discord ユーザーID
+        notification_type: NOTIFICATION_TYPES の値
+    
+    Returns:
+        True: 通知を送る, False: 通知を送らない
+    """
+    try:
+        settings = notification_settings.NotificationSettingsView.load_settings(user_id)
+        
+        # notification_type から設定キーへのマッピング
+        type_to_setting = {
+            NOTIFICATION_TYPES.WORK: 'work',
+            NOTIFICATION_TYPES.EXTERNAL_WORK: 'external_work',
+            NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE: 'unemployment_insurance',
+            NOTIFICATION_TYPES.STEAL: 'steal'
+        }
+        
+        setting_key = type_to_setting.get(notification_type, 'external_work')
+        return settings.get(setting_key, True)  # デフォルトは True (ON)
+    except Exception as e:
+        logger.error(f"Error loading notification settings for user {user_id}: {e}")
+        return True  # エラー時はデフォルトで通知を送る
 
 async def check_reminders(bot):
     await updater.perform_full_update()
@@ -185,10 +213,12 @@ def register_to_tree(bot):
         importlib.reload(admin_commands)
         importlib.reload(economy_commands) 
         importlib.reload(gambling_commands)
+        importlib.reload(notification_settings) 
         general_commands.setup_general_commands(bot)
         admin_commands.setup_admin_commands(bot)
         economy_commands.setup_economy_commands(bot)
         gambling_commands.setup_gambling_commands(bot)
+        notification_settings.setup_notification_commands(bot)
         # 必要に応じて同期も行う
         #bot.loop.create_task(bot.tree.sync())
         logger.info("Modules reloaded")

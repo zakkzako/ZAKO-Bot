@@ -169,4 +169,8 @@ async def notification_settings(interaction: discord.Interaction):
 
 def setup_notification_commands(bot):
     """Botにコマンドを登録"""
-    bot.tree.add_command(notification_settings)
+    existing = [cmd.name for cmd in bot.tree.get_commands()]
+    cmds = [notification_settings]
+    for cmd in cmds:
+        if cmd.name not in existing:
+            bot.tree.add_command(cmd)
