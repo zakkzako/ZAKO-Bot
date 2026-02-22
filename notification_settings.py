@@ -64,7 +64,7 @@ class NotificationSettingsView(discord.ui.View):
     def create_embed(self) -> discord.Embed:
         """現在の設定を表示するEmbedを作成"""
         embed = discord.Embed(
-            title="📋 通知設定",
+            title="通知設定",
             description="各通知機能のON/OFFを切り替えます",
             color=0x3498db
         )
@@ -75,28 +75,28 @@ class NotificationSettingsView(discord.ui.View):
         }
         
         embed.add_field(
-            name="👷 ZAKO-Bot Work通知",
+            name="ZAKO-Bot Work通知",
             value=status_symbols[self.settings['work']],
             inline=True
         )
         embed.add_field(
-            name="🔔 TakasumiBot work通知",
+            name="TakasumiBot work通知",
             value=status_symbols[self.settings['external_work']],
             inline=True
         )
         embed.add_field(
-            name="💼 失業保険通知",
+            name="失業保険通知",
             value=status_symbols[self.settings['unemployment_insurance']],
             inline=True
         )
         embed.add_field(
-            name="💰 steal通知",
+            name="steal通知",
             value=status_symbols[self.settings['steal']],
             inline=True
         )
         
         if self.is_modified:
-            embed.set_footer(text="⚠️ コミットボタンで変更を保存してください")
+            embed.set_footer(text=" 「変更を保存」ボタンを推して変更を保存してください")
         else:
             embed.set_footer(text="ボタンをクリックしてON/OFFを切り替えてください")
         
@@ -122,7 +122,7 @@ class NotificationSettingsView(discord.ui.View):
         self.is_modified = True
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
     
-    @discord.ui.button(label="💼 失業保険通知", style=discord.ButtonStyle.primary, custom_id="notify:toggle:unemployment")
+    @discord.ui.button(label="失業保険通知", style=discord.ButtonStyle.primary, custom_id="notify:toggle:unemployment")
     async def unemployment_toggle(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("このボタンはあなたは操作できません", ephemeral=True)
@@ -132,7 +132,7 @@ class NotificationSettingsView(discord.ui.View):
         self.is_modified = True
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
     
-    @discord.ui.button(label="💰 steal通知", style=discord.ButtonStyle.primary, custom_id="notify:toggle:steal")
+    @discord.ui.button(label="steal通知", style=discord.ButtonStyle.primary, custom_id="notify:toggle:steal")
     async def steal_toggle(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("このボタンはあなたは操作できません", ephemeral=True)
@@ -142,7 +142,7 @@ class NotificationSettingsView(discord.ui.View):
         self.is_modified = True
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
     
-    @discord.ui.button(label="💾 コミット", style=discord.ButtonStyle.success, custom_id="notify:commit")
+    @discord.ui.button(label="変更を保存", style=discord.ButtonStyle.success, custom_id="notify:commit")
     async def commit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("このボタンはあなたは操作できません", ephemeral=True)
