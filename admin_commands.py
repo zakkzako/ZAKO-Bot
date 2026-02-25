@@ -66,7 +66,7 @@ async def money_add(interaction: discord.Interaction, user: discord.Member, amou
     if not economy.user_exists(user.id):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
-    economy.add_money(user, amount)
+    economy.add_money(user.id, amount)
     await interaction.response.send_message(f"✅ {user.mention} に {amount} を追加しました。", ephemeral=True)
 
 @admin_money_group.command(name="remove", description="［ Bot 管理者専用 ］ ユーザーの所持金を剥奪します")
@@ -78,7 +78,7 @@ async def money_remove(interaction: discord.Interaction, user: discord.Member, a
     if not economy.user_exists(user.id):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
-    economy.remove_money(user, amount)
+    economy.remove_money(user.id, amount)
     await interaction.response.send_message(f"✅ {user.mention} から {amount} を剥奪しました。", ephemeral=True)
 
 @admin_money_group.command(name="set", description="［ Bot 管理者専用 ］ ユーザーの所持金を設定します")
@@ -90,7 +90,7 @@ async def money_set(interaction: discord.Interaction, user: discord.Member, amou
     if not economy.user_exists(user.id):
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
-    economy.set_money(user, amount)
+    economy.set_money(user.id, amount)
     await interaction.response.send_message(f"✅ {user.mention} の金額を {amount} に設定しました。", ephemeral=True)
 
 def setup_admin_commands(bot):

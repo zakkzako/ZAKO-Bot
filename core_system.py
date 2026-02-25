@@ -5,7 +5,7 @@ import pytz
 import importlib
 import os
 import json
-import work
+import notification
 import updater
 import jikoku
 import economy
@@ -16,6 +16,7 @@ import gambling_commands
 import jst
 import logging
 import notification_settings
+from _notification_types_ import NOTIFICATION_TYPES
 
 JST = jst.get_jst()
 admin_id_env = os.getenv('ADMIN_ID')
@@ -24,22 +25,15 @@ ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェッ�
 
 logger = logging.getLogger(__name__)
 
+# ZAKO-Bot Community の 失業保険失効通知専用チャンネル のキャッシュ
+UNEMPLOYMENT_NOTIFY_CHANNEL: discord.TextChannel | None = None
+
 # Notification type constants
-NOTIFICATION_TYPE_WORK = 'work'
-NOTIFICATION_TYPE_EXTERNAL_WORK = 'external_work'
 WORK_COOLDOWN_MINUTES = 20
 
-def should_send_notification(user_id: int, notification_type: str) -> bool:
-    """
-    ユーザーの設定に基づいて、通知を送るべきかを判定
-    
-    Args:
-        user_id: Discord ユーザーID
-        notification_type: NOTIFICATION_TYPES の値
-    
-    Returns:
-        True: 通知を送る, False: 通知を送らない
-    """
+async def init_system(bot):
+    global UNEMPLOYMENT_NOTIFY_CHANNEL
+    UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1473864813506465903) or await bot.fetch_channel(1473864813506465903)
     try:
         settings = notification_settings.NotificationSettingsView.load_settings(user_id)
         
@@ -67,34 +61,42 @@ async def check_reminders(bot):
     now = datetime.datetime.now(JST)
     if not os.path.exists("reminders.json"):
         return
+    queue: list[dict] = []
     with open("reminders.json", "r") as f:
         try: queue = json.load(f)
         except json.JSONDecodeError:
             logger.warning("JSON Decode Error in reminders.json")
-            queue = []
 
-    updated_queue = []
+    updated_queue: list[dict] = []
     for r in queue:
         target_time = datetime.datetime.fromisoformat(r['target_time'])
         if now >= target_time:
-            channel = bot.get_channel(r.get('channel_id'))
-            user = bot.get_user(r['user_id'])
+            channel = bot.get_channel(r.get('channel_id')) or bot.fetch_channel(r.get('channel_id'))
+            user = r['user_id']
             if channel and user:
-                try: 
-                    notification_type = r.get('notification_type', NOTIFICATION_TYPE_EXTERNAL_WORK)
-                    
+                try:
+                    notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
+
                     # --- ここから通知メッセージの分岐 ---
-                    if notification_type == 'unemployment':
-                        # 失業保険の通知（ここを修正）
-                        await channel.send(f"{user.mention} 失業保険の期限が切れました！`/work` が可能です。")
-                        
-                    elif notification_type == NOTIFICATION_TYPE_WORK:
+                    if notification_type == NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE:
+                        # 失業保険（TakasumiBOT）の通知
+                        if channel.guild.id == 1455450215313309763:
+                            await channel.send(f"<@{user}> 失業保険が間もなく失効します\n<#1455515562255056948> で </pay:1132518157119135775> を実行して失業保険を購入しましょう。")
+                        else:
+                            await channel.send(f"<@{user}> 失業保険が間もなく失効します\n</pay:1132518157119135775> を実行して失業保険を購入しましょう。")
+
+                    elif notification_type == NOTIFICATION_TYPES.WORK:
                         # 内部workコマンドの通知
-                        await channel.send(f"{user.mention} `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1458950836456657064> を実行できます！")
-                        
-                    else:
+                        await channel.send(f"<@{user}> `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
+
+                    elif notification_type == NOTIFICATION_TYPES.EXTERNAL_WORK:
                         # 外部bot（TakasumiBOT）のwork検知による通知
-                        await channel.send(f"{user.mention} workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
+                        await channel.send(f"<@{user}> workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
+                    elif notification_type == NOTIFICATION_TYPES.STEAL:
+                        # 外部bot（TakasumiBOT）のsteal検知による通知
+                        await channel.send(f"<@{user}> stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
+                    else:
+                        raise ValueError(f"Unknown notification type: {notification_type}")
                 except Exception as e:
                     logger.error(f"Notification send error: {e}")
             continue
@@ -102,16 +104,25 @@ async def check_reminders(bot):
     with open("reminders.json", "w") as f:
         json.dump(updated_queue, f, indent=4)
 
-
-
 async def process_message_event(bot, message):
     if message.author.bot and message.embeds:
         for embed in message.embeds:
             desc = embed.description or ""
             fields_text = "".join([f.value for f in embed.fields])
             if "給料:" in desc or "給料:" in fields_text:
-                importlib.reload(work)
-                await work.handle_work_detection(bot, message, embed)
+                importlib.reload(notification)
+                await notification.handle_work_detection(bot, message, embed)
+            elif "失業保険" in desc and "購入しました" in desc:
+                # ユーザー特定ロジックは既存のものを流用（適宜変数名を合わせてください）
+                user = None
+                if message.interaction_metadata: user = message.interaction_metadata.user
+                elif message.mentions: user = message.mentions[0]
+                if user:
+                    importlib.reload(notification)
+                    await notification.handle_unemployment_detection(bot, message, user, desc)
+            elif "から盗めませんでした" in desc or "から盗みました" in desc:
+                importlib.reload(notification)
+                await notification.handle_steal_detection(bot, message)
 
 # EC -> TC 承認処理
 async def handle_economy_application_exchange_ec(bot, interaction, approved):
@@ -176,7 +187,7 @@ async def handle_economy_application_exchange_tc(bot, interaction, approved):
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to TC for {user.name} ({user.id})")
         except Exception as e:
-            logger.error(f"Economy Exchange to TC Denial Error: {e}")            
+            logger.error(f"Economy Exchange to TC Denial Error: {e}")
 
 async def handle_reaction_event(bot, payload):
     if payload.user_id not in ADMIN_IDS or str(payload.emoji) != "✅":

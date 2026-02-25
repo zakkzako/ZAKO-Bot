@@ -23,7 +23,7 @@ WORK_COOLDOWN_MINUTES = 45
 def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
     """
     Helper function to schedule work notifications
-    
+
     Args:
         user_id: Discord user ID
         channel_id: Discord channel ID
@@ -44,13 +44,13 @@ def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes:
         }
 
         # 2. ファイルを読み込んで queue を作成
-        queue = []
+        queue: list[dict] = []
         if os.path.exists("reminders.json"):
             with open("reminders.json", "r") as f:
                 try:
                     queue = json.load(f)
                 except json.JSONDecodeError:
-                    queue = []
+                    logger.warning("reminders.json is corrupted. Starting with an empty queue.")
 
         # 3. 既存の予約があるか確認
         if any(r.get('user_id') == user_id and r.get('notification_type') == NOTIFICATION_TYPE_WORK for r in queue):
@@ -92,7 +92,7 @@ async def economy_stats(interaction: discord.Interaction):
     embed = discord.Embed(title="経済統計", color=0x00ffff)
     embed.add_field(name="総発行EC", value=f"{total_supply:,.2f} EC", inline=False)
     embed.add_field(name="交換レート", value=f"1 EC = {rate:.4f} Money", inline=False)
-    
+
     await interaction.response.send_message(embed=embed)
 
 @app_commands.command(name="work", description="ECを獲得します（45分に1回）")
@@ -117,7 +117,7 @@ async def ec_work(interaction: discord.Interaction):
     else:
         # クールダウン中 - 残り時間で通知をスケジュール
         min_left = int(res.total_seconds() // 60)
-        
+
         # 通知をスケジュール
         _schedule_work_notification(
             interaction.user.id,
