@@ -15,6 +15,7 @@ import economy_commands
 import gambling_commands
 import jst
 import logging
+import notification_settings
 from _notification_types_ import NOTIFICATION_TYPES
 
 JST = jst.get_jst()
@@ -34,9 +35,21 @@ async def init_system(bot):
     global UNEMPLOYMENT_NOTIFY_CHANNEL
     UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1473864813506465903) or await bot.fetch_channel(1473864813506465903)
     try:
-        await bot.tree.sync()
+        settings = notification_settings.NotificationSettingsView.load_settings(user_id)
+        
+        # notification_type から設定キーへのマッピング
+        type_to_setting = {
+            NOTIFICATION_TYPES.WORK: 'work',
+            NOTIFICATION_TYPES.EXTERNAL_WORK: 'external_work',
+            NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE: 'unemployment_insurance',
+            NOTIFICATION_TYPES.STEAL: 'steal'
+        }
+        
+        setting_key = type_to_setting.get(notification_type, 'external_work')
+        return settings.get(setting_key, True)  # デフォルトは True (ON)
     except Exception as e:
-        logger.error(f"Sync Error: {e}")
+        logger.error(f"Error loading notification settings for user {user_id}: {e}")
+        return True  # エラー時はデフォルトで通知を送る
 
 async def check_reminders(bot):
     await updater.perform_full_update()
@@ -211,12 +224,14 @@ def register_to_tree(bot):
         importlib.reload(admin_commands)
         importlib.reload(economy_commands) 
         importlib.reload(gambling_commands)
+        importlib.reload(notification_settings) 
         general_commands.setup_general_commands(bot)
         admin_commands.setup_admin_commands(bot)
         economy_commands.setup_economy_commands(bot)
         gambling_commands.setup_gambling_commands(bot)
+        notification_settings.setup_notification_commands(bot)
         # 必要に応じて同期も行う
-        bot.loop.create_task(bot.tree.sync())
-        logger.info("Modules reloaded and tree synced.")
+        #bot.loop.create_task(bot.tree.sync())
+        logger.info("Modules reloaded")
     except Exception as e:
         logger.error(f"Registration Error: {e}")

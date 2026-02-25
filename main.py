@@ -10,20 +10,21 @@ import core_system
 import jst
 import logging
 import views.EconomyApplication as EconomyApplicationViews
+import device_monitor
 
 load_dotenv()
 JST = jst.get_jst()
 
 # ログ設定
 logging.basicConfig(
-    level=logging.INFO,  # ログレベルを INFO に設定
+    level=logging.INFO,  # ログレベルを! INFO に!設定!
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
-        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato
-        logging.StreamHandler()  # コンソールに出力
+        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato              ↑結局どうなったんだ🤔
     ]
 )
 logger = logging.getLogger(__name__)
+
 
 class TakasumiAuxiliaryBot(commands.Bot):
     def __init__(self):
@@ -31,18 +32,29 @@ class TakasumiAuxiliaryBot(commands.Bot):
         super().__init__(command_prefix='/', intents=discord.Intents.all())
 
     async def setup_hook(self):
-        """起動時の初期化とコマンド同期をcore_systemに委譲"""
+        """起動時の初期化"""
         core_system.register_to_tree(self)
-        await core_system.init_system(self)
         await self.tree.sync()
+        # ループを開始
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
+        try:
+            await device_monitor.update_device_status(self)
+        except Exception as e:
+            logger.error(f"Initial Status Update Error: {e}")     
+        self.device_status_loop.start() # 1回目完了後に定期実行を開始
+
+
+    @tasks.loop(minutes=10)
+    async def device_status_loop(self):
+        """スマホのステータス情報チャンネルを更新"""
+        importlib.reload(device_monitor) # 修正を即時反映できるようリロード
+        await device_monitor.update_device_status(self)
 
     @tasks.loop(seconds=30)
     async def check_timer_loop(self):
         """リマインダーチェック"""
         try:
-            # ここに await を追加しました！
             await core_system.check_reminders(self)
         except Exception as e:
             logger.error(f"Loop Error: {e}")
