@@ -32,11 +32,30 @@ UNEMPLOYMENT_NOTIFY_CHANNEL: discord.TextChannel | None = None
 WORK_COOLDOWN_MINUTES = 20
 
 async def init_system(bot):
+    try:
+        global UNEMPLOYMENT_NOTIFY_CHANNEL
+        UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1473864813506465903) or await bot.fetch_channel(1473864813506465903)
+        register_to_tree(bot)
+        logger.info("System initialized")
+    except Exception as e:
+        logger.error(f"Initialization Error: {e}")
+
+async def should_send_notification(bot, user_id: int, notification_type: str) -> bool:
+    """
+    ユーザーの設定に基づいて、通知を送るべきかを判定
+
+    Args:
+        user_id: Discord ユーザーID
+        notification_type: NOTIFICATION_TYPES の値
+
+    Returns:
+        True: 通知を送る, False: 通知を送らない
+    """
     global UNEMPLOYMENT_NOTIFY_CHANNEL
     UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1473864813506465903) or await bot.fetch_channel(1473864813506465903)
     try:
         settings = notification_settings.NotificationSettingsView.load_settings(user_id)
-        
+
         # notification_type から設定キーへのマッピング
         type_to_setting = {
             NOTIFICATION_TYPES.WORK: 'work',
@@ -44,7 +63,7 @@ async def init_system(bot):
             NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE: 'unemployment_insurance',
             NOTIFICATION_TYPES.STEAL: 'steal'
         }
-        
+
         setting_key = type_to_setting.get(notification_type, 'external_work')
         return settings.get(setting_key, True)  # デフォルトは True (ON)
     except Exception as e:

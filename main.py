@@ -20,7 +20,9 @@ logging.basicConfig(
     level=logging.INFO,  # ログレベルを! INFO に!設定!
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
-        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録    検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato              ↑結局どうなったんだ🤔
+        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録 ： 検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato
+        # ↑結局どうなったんだ🤔
+        # 廃止で()        しばらくしたら消します
     ]
 )
 logger = logging.getLogger(__name__)
