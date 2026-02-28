@@ -268,7 +268,7 @@ async def exchange(interaction: discord.Interaction, amount: float):
         embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
         embed.description = f"**{amount} EC** (約 {amount * rate:,.0f} Money) の換金申請を受け付けました。\n管理者が承認するまでお待ちください。"
         embed.set_footer(text="※手数料10%が含まれた金額が既に差し引かれています")
-        
+
         await interaction.followup.send(embed=embed) # deferしているので followup を使う
     else:
         await interaction.followup.send("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
@@ -322,4 +322,3 @@ def setup_economy_commands(bot):
     for c in cmds:
         if c.name not in [cmd.name for cmd in bot.tree.get_commands()]:
             bot.tree.add_command(c)
-#う

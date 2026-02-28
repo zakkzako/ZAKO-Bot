@@ -100,18 +100,22 @@ async def ec_work(interaction: discord.Interaction):
     success, res = economy.process_work(interaction.user.id)
 
     if success:
+        try:
+            # 通知をスケジュール
+            _schedule_work_notification(
+                interaction.user.id,
+                interaction.channel_id,
+                WORK_COOLDOWN_MINUTES,
+                'success'
+            )
+        except Exception as e:
+            print(f"Failed to schedule work notification for user {interaction.user.id}: {e}")
+            await interaction.response.send_message("⛏ ECを獲得しましたが、クールダウン通知のスケジュールに失敗しました。\n申し訳ありませんが、45分後に再度 `/work` を実行してクールダウンが終了しているかご確認ください。")
+
         # 成功メッセージ（クールダウン終了時に通知が届くことを明示）
         await interaction.response.send_message(
             f"⛏ **{res} EC** を獲得しました！\n"
             f"{WORK_COOLDOWN_MINUTES}分後に `/work` が再度利用可能になったタイミングで通知を送ります。"
-        )
-
-        # 通知をスケジュール
-        _schedule_work_notification(
-            interaction.user.id,
-            interaction.channel_id,
-            WORK_COOLDOWN_MINUTES,
-            'success'
         )
 
     else:

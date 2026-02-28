@@ -37,13 +37,13 @@ async def get_dynamic_base_pool():
                     user_stats = data.get("user", {})
                     earn = user_stats.get("totalEarn", 0)
                     use = user_stats.get("totalUse", 0)
-                    
+
                     pool = earn - use
                     # 異常値ガード（最低100万を下回らないようにする）
                     return max(pool, 1000000)
     except Exception as e:
         logger.error(f"API Fetch Error (BasePool): {e}")
-    
+
     # 失敗時は以前の基準値（約3.8億）をフォールバックとして返す
     return 380300000
 
@@ -95,15 +95,15 @@ def set_money(user_id, amount):
     save_json(USER_DATA_FILE, users)
 
 def process_work(user_id):
-    """40分おきのEC獲得処理"""
+    """45分おきのEC獲得処理"""
     users = load_json(USER_DATA_FILE, {})
     uid = str(user_id)
     now = datetime.datetime.now()
 
     if uid in users and "last_work" in users[uid]:
         last_time = datetime.datetime.fromisoformat(users[uid]["last_work"])
-        if now < last_time + datetime.timedelta(minutes=40):
-            return False, (last_time + datetime.timedelta(minutes=40) - now)
+        if now < last_time + datetime.timedelta(minutes=45):
+            return False, (last_time + datetime.timedelta(minutes=45) - now)
 
     reward = round(random.uniform(10, 20), 2)
     econ = load_json(ECONOMY_FILE, {"total_supply": INITIAL_SUPPLY})
@@ -124,10 +124,10 @@ def collect_ec_for_exchange(user_id, amount_ec):
     uid = str(user_id)
     # 換金希望額 + 手数料10%
     total_needed = amount_ec * 1.1
-    
+
     if uid not in users or users[uid]["balance"] < total_needed:
         return False, 0
-        
+
     users[uid]["balance"] -= total_needed
     save_json(USER_DATA_FILE, users)
     return True, total_needed
