@@ -26,7 +26,7 @@ JOB_MAP = {
 }
 
 async def handle_work_detection(bot, message, embed):
-    now = datetime.datetime.now(JST)
+    now = jst.now()
 
     # interaction_metadata を使用してユーザーを特定 （警告回避）
     user = None
@@ -38,7 +38,7 @@ async def handle_work_detection(bot, message, embed):
     if not user:
         return
 
-    logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name}のworkを検知")
+    logger.debug(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name} のworkを検知")
 
     # クールタイム取得ロジック
     cd_min = 60
@@ -51,9 +51,9 @@ async def handle_work_detection(bot, message, embed):
             if job_key in JOB_MAP:
                 job_info = JOB_MAP[job_key]
                 cd_min = job_info["time"]
-            logger.info(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name}の職業:{job_info['name']}")
-    except:
-        logger.warning(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: 60分後に設定")
+            logger.debug(f"【{jst.now().strftime('%Y/%m/%d %H:%M:%S')}】{user.name} の職業: {job_info['name']}")
+    except Exception as e:
+        logger.warning(f"【{jst.now().strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: {e}")
 
     # 通知予約データの作成
     target_time = now + datetime.timedelta(minutes=cd_min)
@@ -85,7 +85,7 @@ async def handle_unemployment_detection(bot, message, user, description):
     match = re.search(r'有効期限は(\d{4}/\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}:\d{1,2})', description)
 
     if match:
-        logger.info(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name}の失業保険の購入を検知")
+        logger.debug(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name} の失業保険の購入を検知")
 
         expiry_str = match.group(1)
         # 文字列を日時に変換してタイムゾーン(JST)を設定
@@ -121,7 +121,7 @@ async def handle_unemployment_detection(bot, message, user, description):
         await message.channel.send(embed=embed)
 
 async def handle_steal_detection(bot, message):
-    now = datetime.datetime.now(JST)
+    now = jst.now()
 
     user: None
     if message.interaction_metadata:
@@ -131,7 +131,7 @@ async def handle_steal_detection(bot, message):
     if not user:
         return
 
-    logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name}のstealを検知")
+    logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name} のstealを検知")
 
     # 通知予約データの作成
     target_time = now + datetime.timedelta(hours=2)
