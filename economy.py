@@ -115,7 +115,7 @@ def process_work(user_id):
     users[uid]["last_work"] = now.isoformat()
     save_json(USER_DATA_FILE, users)
 
-    logger.info(f"User {user_id} earned {reward} EC")
+    logger.debug(f"User {user_id} earned {reward} EC")
     return True, reward
 
 def collect_ec_for_exchange(user_id, amount_ec):

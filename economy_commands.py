@@ -63,7 +63,7 @@ def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes:
             json.dump(queue, f, indent=4)
     except (OSError, json.JSONDecodeError) as e:
         # 通知スケジューリングの失敗は無視し、メイン機能に影響を与えない
-        print(f"Failed to schedule {context} notification for user {user_id}: {e}")
+        logger.error(f"Failed to schedule {context} notification for user {user_id}: {e}")
 
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECと TakasumiBOT コイン 換算額を確認します")
@@ -109,7 +109,7 @@ async def ec_work(interaction: discord.Interaction):
                 'success'
             )
         except Exception as e:
-            print(f"Failed to schedule work notification for user {interaction.user.id}: {e}")
+            logger.error(f"Failed to schedule work notification for user {interaction.user.id}: {e}")
             await interaction.response.send_message("⛏ ECを獲得しましたが、クールダウン通知のスケジュールに失敗しました。\n申し訳ありませんが、45分後に再度 `/work` を実行してクールダウンが終了しているかご確認ください。")
 
         # 成功メッセージ（クールダウン終了時に通知が届くことを明示）
@@ -121,14 +121,6 @@ async def ec_work(interaction: discord.Interaction):
     else:
         # クールダウン中 - 残り時間で通知をスケジュール
         min_left = int(res.total_seconds() // 60)
-
-        # 通知をスケジュール
-        _schedule_work_notification(
-            interaction.user.id,
-            interaction.channel_id,
-            min_left,
-            'cooldown'
-        )
 
         await interaction.response.send_message(
             f"クールタイム中 あと {min_left}分 お待ちください。\n"
