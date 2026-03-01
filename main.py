@@ -15,15 +15,18 @@ import device_monitor
 load_dotenv()
 JST = jst.get_jst()
 
-# ログ設定
+# 共通のフォーマットを定義
+log_format = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+
+# ターミナル（コンソール）出力用の設定
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_format)
+console_handler.setLevel(logging.INFO)
+
+# ログの基本設定（handlersにconsole_handlerを指定）
 logging.basicConfig(
-    level=logging.INFO,  # ログレベルを! INFO に!設定!
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-    handlers=[
-        # logging.FileHandler('bot.log', encoding='utf-8'),  # ファイルにログを記録 ： 検討中🤔 - ファイルサイズが大きくなりそうなんよね | Yamatomato
-        # ↑結局どうなったんだ🤔
-        # 廃止で()        しばらくしたら消します
-    ]
+    level=logging.INFO,
+    handlers=[console_handler]
 )
 logger = logging.getLogger(__name__)
 
@@ -151,8 +154,9 @@ async def on_ready():
     logger.info(f"【{now}】{bot.user.name} としてログインしました")
 
 discord_bot_logger = DiscordBotLogger()
-logger.addHandler(discord_bot_logger)
-logging.getLogger('discord').addHandler(discord_bot_logger)
+discord_bot_logger.setFormatter(log_format) 
+logging.getLogger().addHandler(discord_bot_logger)
+
 
 @bot.event
 async def on_error(event_method, *args, **kwargs):

@@ -93,6 +93,9 @@ async def check_reminders(bot):
             channel = bot.get_channel(r.get('channel_id')) or await  bot.fetch_channel(r.get('channel_id'))
             user = r['user_id']
             if channel and user:
+                notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
+                if not await should_send_notification(bot, user, notification_type):
+                    continue 
                 try:
                     notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
 
