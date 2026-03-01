@@ -174,7 +174,7 @@ class BlackjackView(discord.ui.View):
 
 @app_commands.command(name="bj", description="Blackjack をプレイします")
 async def bj_start(interaction: discord.Interaction, amount: float):
-    if amount <= 1: return await interaction.response.send_message("金額が正しくありません。\n**1 EC** 以上にしてください。", ephemeral=True)
+    if amount >= 1: return await interaction.response.send_message("金額が正しくありません。\n**1 EC** 以上にしてください。", ephemeral=True)
     
     # 1. 重複プレイチェック
     if interaction.user.id in active_players:
