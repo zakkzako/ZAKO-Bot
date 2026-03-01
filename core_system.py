@@ -90,7 +90,7 @@ async def check_reminders(bot):
     for r in queue:
         target_time = datetime.datetime.fromisoformat(r['target_time'])
         if now >= target_time:
-            channel = bot.get_channel(r.get('channel_id')) or bot.fetch_channel(r.get('channel_id'))
+            channel = bot.get_channel(r.get('channel_id')) or await  bot.fetch_channel(r.get('channel_id'))
             user = r['user_id']
             if channel and user:
                 try:
