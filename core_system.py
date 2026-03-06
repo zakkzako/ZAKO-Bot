@@ -90,12 +90,21 @@ async def check_reminders(bot):
     for r in queue:
         target_time = datetime.datetime.fromisoformat(r['target_time'])
         if now >= target_time:
-            channel = bot.get_channel(r.get('channel_id')) or await  bot.fetch_channel(r.get('channel_id'))
+            try:
+                channel = bot.get_channel(r.get('channel_id')) or await bot.fetch_channel(r.get('channel_id'))
+            except Exception as e:
+                if e.status == 403:  # Forbidden
+                    logger.warning(f"Channel access forbidden for channel ID {r.get('channel_id')}")
+                elif e.status == 404:  # Not Found
+                    logger.warning(f"Channel not found for channel ID {r.get('channel_id')}")
+                else:
+                    logger.error(f"Error fetching channel ID {r.get('channel_id')}: {e}")
+                continue
             user = r['user_id']
             if channel and user:
                 notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
                 if not await should_send_notification(bot, user, notification_type):
-                    continue 
+                    continue
                 try:
                     notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
 
@@ -121,6 +130,7 @@ async def check_reminders(bot):
                         raise ValueError(f"Unknown notification type: {notification_type}")
                 except Exception as e:
                     logger.error(f"Notification send error: {e}")
+                    continue
             continue
         updated_queue.append(r)
     with open("reminders.json", "w") as f:

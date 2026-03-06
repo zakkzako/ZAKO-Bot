@@ -46,7 +46,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
         try:
             await device_monitor.update_device_status(self)
         except Exception as e:
-            logger.error(f"Initial Status Update Error: {e}")     
+            logger.error(f"Initial Status Update Error: {e}")
         self.device_status_loop.start() # 1回目完了後に定期実行を開始
 
 
@@ -154,7 +154,7 @@ async def on_ready():
     logger.info(f"【{now}】{bot.user.name} としてログインしました")
 
 discord_bot_logger = DiscordBotLogger()
-discord_bot_logger.setFormatter(log_format) 
+discord_bot_logger.setFormatter(log_format)
 logging.getLogger().addHandler(discord_bot_logger)
 
 
