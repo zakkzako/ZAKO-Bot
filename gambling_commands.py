@@ -110,7 +110,9 @@ class BlackjackView(discord.ui.View):
     @discord.ui.button(label="Hit", style=discord.ButtonStyle.primary)
     async def hit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user.id: return
-        
+        if self.game_over:
+            await interaction.response.defer()
+            return
         hand = self.hands[self.current_hand_index]
         hand.append(self.deck.pop())
         
@@ -123,11 +125,17 @@ class BlackjackView(discord.ui.View):
     @discord.ui.button(label="Stand", style=discord.ButtonStyle.secondary)
     async def stand_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user.id: return
+        if self.game_over:
+            await interaction.response.defer()
+            return
         await self.next_hand(interaction)
 
     @discord.ui.button(label="Double", style=discord.ButtonStyle.danger)
     async def double_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user.id: return
+        if self.game_over:
+            await interaction.response.defer()
+            return
         
         # 資金チェック（追加分が必要）
         users = economy.load_json("users.json", {})
@@ -145,6 +153,9 @@ class BlackjackView(discord.ui.View):
     @discord.ui.button(label="Split", style=discord.ButtonStyle.success)
     async def split_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user.id: return
+        if self.game_over:
+            await interaction.response.defer()
+            return
         
         users = economy.load_json("users.json", {})
         uid = str(self.user.id) 
