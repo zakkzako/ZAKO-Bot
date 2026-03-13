@@ -138,6 +138,15 @@ async def check_reminders(bot):
 
 async def process_message_event(bot, message):
     if message.author.bot and message.embeds:
+        if not message.guild:
+            return
+
+        bot_member = message.guild.get_member(bot.user.id) or await message.guild.fetch_member(bot.user.id)
+        if not bot_member.guild_permissions.view_channel or not bot_member.guild_permissions.send_messages:
+            logger.warning(f"Missing permissions in guild {message.guild.id} for notify. Skipping message processing.")
+            await message.reply(embed=discord.Embed(description="通知を送信するのに必要な権限が不足しています。サーバー管理者にお問い合わせください。", color=discord.Color.red()))
+            return
+
         for embed in message.embeds:
             desc = embed.description or ""
             fields_text = "".join([f.value for f in embed.fields])
