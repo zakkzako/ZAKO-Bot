@@ -38,6 +38,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
     async def setup_hook(self):
         """起動時の初期化"""
+        await database.init_db()
         core_system.register_to_tree(self)
         await self.tree.sync()
         # ループを開始
