@@ -4,7 +4,6 @@ import datetime
 import pytz
 import importlib
 import os
-import json
 import notification
 import updater
 import jikoku
@@ -16,19 +15,16 @@ import gambling_commands
 import jst
 import logging
 import notification_settings
+import database
 from _notification_types_ import NOTIFICATION_TYPES
 
 JST = jst.get_jst()
 admin_id_env = os.getenv('ADMIN_ID')
-"""ADMIN_IDS = [int(admin_id_env)] if admin_id_env else []"""
-ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェックがうまくいかないため、一時的にハードコーディングしています。ゆるして  by yamatomato0105
+ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]
 
 logger = logging.getLogger(__name__)
 
-# ZAKO-Bot Community の 失業保険失効通知専用チャンネル のキャッシュ
 UNEMPLOYMENT_NOTIFY_CHANNEL: discord.TextChannel | None = None
-
-# Notification type constants
 WORK_COOLDOWN_MINUTES = 20
 
 async def init_system(bot):
@@ -41,22 +37,13 @@ async def init_system(bot):
         logger.error(f"Initialization Error: {e}")
 
 async def should_send_notification(bot, user_id: int, notification_type: str) -> bool:
-    """
-    ユーザーの設定に基づいて、通知を送るべきかを判定
-
-    Args:
-        user_id: Discord ユーザーID
-        notification_type: NOTIFICATION_TYPES の値
-
-    Returns:
-        True: 通知を送る, False: 通知を送らない
-    """
+    """ユーザーの設定に基づいて、通知を送るべきかを判定"""
     global UNEMPLOYMENT_NOTIFY_CHANNEL
     UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1473864813506465903) or await bot.fetch_channel(1473864813506465903)
     try:
-        settings = notification_settings.NotificationSettingsView.load_settings(user_id)
+        # load_settingsがasyncになったためawaitを追加
+        settings = await notification_settings.NotificationSettingsView.load_settings(user_id)
 
-        # notification_type から設定キーへのマッピング
         type_to_setting = {
             NOTIFICATION_TYPES.WORK: 'work',
             NOTIFICATION_TYPES.EXTERNAL_WORK: 'external_work',
@@ -65,10 +52,10 @@ async def should_send_notification(bot, user_id: int, notification_type: str) ->
         }
 
         setting_key = type_to_setting.get(notification_type, 'external_work')
-        return settings.get(setting_key, True)  # デフォルトは True (ON)
+        return settings.get(setting_key, True)
     except Exception as e:
         logger.error(f"Error loading notification settings for user {user_id}: {e}")
-        return True  # エラー時はデフォルトで通知を送る
+        return True
 
 async def check_reminders(bot):
     await updater.perform_full_update()
@@ -78,66 +65,78 @@ async def check_reminders(bot):
         logger.error(f"Jihou Error: {e}")
 
     now = datetime.datetime.now(JST)
-    if not os.path.exists("reminders.json"):
+    now_iso = now.isoformat()
+
+    # DBから時間が来ている（または過ぎている）リマインダーだけを取得
+    rows = await database.fetch_all("SELECT * FROM reminders WHERE target_time <= ?", (now_iso,))
+    
+    if not rows:
         return
-    queue: list[dict] = []
-    with open("reminders.json", "r") as f:
-        try: queue = json.load(f)
-        except json.JSONDecodeError:
-            logger.warning("JSON Decode Error in reminders.json")
 
-    updated_queue: list[dict] = []
-    for r in queue:
-        target_time = datetime.datetime.fromisoformat(r['target_time'])
-        if now >= target_time:
-            try:
-                channel = bot.get_channel(r.get('channel_id')) or await bot.fetch_channel(r.get('channel_id'))
-            except Exception as e:
-                if e.status == 403:  # Forbidden
-                    logger.warning(f"Channel access forbidden for channel ID {r.get('channel_id')}")
-                elif e.status == 404:  # Not Found
-                    logger.warning(f"Channel not found for channel ID {r.get('channel_id')}")
-                else:
-                    logger.error(f"Error fetching channel ID {r.get('channel_id')}: {e}")
-                continue
-            user = r['user_id']
-            if channel and user:
-                notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
-                if not await should_send_notification(bot, user, notification_type):
-                    continue
-                try:
-                    notification_type = r.get('notification_type', NOTIFICATION_TYPES.EXTERNAL_WORK)
+    processed_ids = []
 
-                    # --- ここから通知メッセージの分岐 ---
-                    if notification_type == NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE:
-                        # 失業保険（TakasumiBOT）の通知
-                        if channel.guild.id == 1455450215313309763:
-                            await channel.send(f"<@{user}> 失業保険が間もなく失効します\n<#1455515562255056948> で </pay:1132518157119135775> を実行して失業保険を購入しましょう。")
-                        else:
-                            await channel.send(f"<@{user}> 失業保険が間もなく失効します\n</pay:1132518157119135775> を実行して失業保険を購入しましょう。")
+    for r in rows:
+        rem_id = r['id']
+        user_id = r['user_id']
+        channel_id = r['channel_id']
+        notification_type = r['notification_type']
+        cooldown_min = r['cooldown_min']
 
-                    elif notification_type == NOTIFICATION_TYPES.WORK:
-                        # 内部workコマンドの通知
-                        await channel.send(f"<@{user}> `/work` から{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
+        # 処理対象としてIDを記録
+        processed_ids.append(rem_id)
 
-                    elif notification_type == NOTIFICATION_TYPES.EXTERNAL_WORK:
-                        # 外部bot（TakasumiBOT）のwork検知による通知
-                        await channel.send(f"<@{user}> workから{r.get('cooldown_min', WORK_COOLDOWN_MINUTES)}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
-                    elif notification_type == NOTIFICATION_TYPES.STEAL:
-                        # 外部bot（TakasumiBOT）のsteal検知による通知
-                        await channel.send(f"<@{user}> stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
-                    else:
-                        raise ValueError(f"Unknown notification type: {notification_type}")
-                except Exception as e:
-                    logger.error(f"Notification send error: {e}")
-                    continue
+        try:
+            channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
+        except Exception as e:
+            if hasattr(e, 'status') and e.status == 403:
+                logger.warning(f"Channel access forbidden for channel ID {channel_id}")
+            elif hasattr(e, 'status') and e.status == 404:
+                logger.warning(f"Channel not found for channel ID {channel_id}")
+            else:
+                logger.error(f"Error fetching channel ID {channel_id}: {e}")
             continue
-        updated_queue.append(r)
-    with open("reminders.json", "w") as f:
-        json.dump(updated_queue, f, indent=4)
+
+        if channel and user_id:
+            if not await should_send_notification(bot, user_id, notification_type):
+                continue
+                
+            try:
+                if notification_type == NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE:
+                    if channel.guild.id == 1455450215313309763:
+                        await channel.send(f"<@{user_id}> 失業保険が間もなく失効します\n<#1455515562255056948> で </pay:1132518157119135775> を実行して失業保険を購入しましょう。")
+                    else:
+                        await channel.send(f"<@{user_id}> 失業保険が間もなく失効します\n</pay:1132518157119135775> を実行して失業保険を購入しましょう。")
+
+                elif notification_type == NOTIFICATION_TYPES.WORK:
+                    await channel.send(f"<@{user_id}> `/work` から{cooldown_min}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
+
+                elif notification_type == NOTIFICATION_TYPES.EXTERNAL_WORK:
+                    await channel.send(f"<@{user_id}> workから{cooldown_min}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
+                
+                elif notification_type == NOTIFICATION_TYPES.STEAL:
+                    await channel.send(f"<@{user_id}> stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
+                else:
+                    logger.warning(f"Unknown notification type: {notification_type}")
+            except Exception as e:
+                logger.error(f"Notification send error: {e}")
+                continue
+
+    # 処理が終わったリマインダーを一括でDBから削除
+    if processed_ids:
+        placeholders = ','.join('?' * len(processed_ids))
+        await database.execute_query(f"DELETE FROM reminders WHERE id IN ({placeholders})", tuple(processed_ids))
 
 async def process_message_event(bot, message):
     if message.author.bot and message.embeds:
+        if not message.guild:
+            return
+
+        bot_member = message.guild.get_member(bot.user.id) or await message.guild.fetch_member(bot.user.id)
+        if not bot_member.guild_permissions.view_channel or not bot_member.guild_permissions.send_messages:
+            logger.warning(f"Missing permissions in guild {message.guild.id} for notify. Skipping message processing.")
+            await message.reply(embed=discord.Embed(description="通知を送信するのに必要な権限が不足しています。サーバー管理者にお問い合わせください。", color=discord.Color.red()))
+            return
+
         for embed in message.embeds:
             desc = embed.description or ""
             fields_text = "".join([f.value for f in embed.fields])
@@ -145,7 +144,6 @@ async def process_message_event(bot, message):
                 importlib.reload(notification)
                 await notification.handle_work_detection(bot, message, embed)
             elif "失業保険" in desc and "購入しました" in desc:
-                # ユーザー特定ロジックは既存のものを流用（適宜変数名を合わせてください）
                 user = None
                 if message.interaction_metadata: user = message.interaction_metadata.user
                 elif message.mentions: user = message.mentions[0]
@@ -156,21 +154,18 @@ async def process_message_event(bot, message):
                 importlib.reload(notification)
                 await notification.handle_steal_detection(bot, message)
 
-# EC -> TC 承認処理
 async def handle_economy_application_exchange_ec(bot, interaction, approved):
     if interaction.user.id not in ADMIN_IDS:
         return
 
-    """承認チェック"""
     if approved == True:
-        # 承認
         try:
             importlib.reload(economy)
             embed = interaction.message.embeds[0]
             uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             user = bot.get_user(uid)
             amount = float((embed.fields[1].value).split(" ")[0])
-            new_rate = await economy.confirm_exchange(amount, "ec", user)
+            new_rate = await economy.confirm_exchange(amount, "ec", user.id) # user_idを渡すよう修正
             embed.fields[3].value = f"✅ 承認済み（レート: {new_rate:.4f}）"
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to EC for {user.name} ({user.id})")
@@ -178,43 +173,38 @@ async def handle_economy_application_exchange_ec(bot, interaction, approved):
             logger.error(f"Economy Exchange to EC Error: {e}")
 
     elif approved == False:
-        # 却下
         try:
             embed = interaction.message.embeds[0]
-            user = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
-            amount = float((embed.fields[1].value).split(" ")[0])
+            uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            user = bot.get_user(uid)
             embed.fields[3].value = "❌ 却下済み"
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to EC for {user.name} ({user.id})")
         except Exception as e:
             logger.error(f"Economy Exchange to EC Denial Error: {e}")
 
-# TC -> EC 承認処理
 async def handle_economy_application_exchange_tc(bot, interaction, approved):
     if interaction.user.id not in ADMIN_IDS:
         return
 
-    """承認チェック"""
     if approved == True:
-        # 承認
         try:
             importlib.reload(economy)
             embed = interaction.message.embeds[0]
             uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             user = bot.get_user(uid)
             amount = float((embed.fields[1].value).split(" ")[0])
-            new_rate = await economy.confirm_exchange(amount, "tc", user)
+            new_rate = await economy.confirm_exchange(amount, "tc", user.id) # user_idを渡すよう修正
             embed.fields[3].value = f"✅ 承認済み（レート: {new_rate:.4f}）"
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Confirmed: Exchange to TC for {user.name} ({user.id})")
         except Exception as e:
             logger.error(f"Economy Exchange to TC Error: {e}")
     elif approved == False:
-        # 却下
         try:
             embed = interaction.message.embeds[0]
-            user = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
-            amount = float((embed.fields[1].value).split(" ")[0])
+            uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
+            user = bot.get_user(uid)
             embed.fields[3].value = "❌ 却下済み"
             await interaction.message.edit(embed=embed, view=None)
             logger.info(f"【{datetime.datetime.now(JST)}】[Economy] Denied: Exchange to TC for {user.name} ({user.id})")
@@ -233,7 +223,6 @@ async def handle_reaction_event(bot, payload):
     embed = message.embeds[0]
 
     try:
-        # 最新の経済ロジックを読み込み
         importlib.reload(economy)
         user_mention = embed.fields[0].value
         user_id = int(user_mention.replace("<@", "").replace(">", "").replace("!", ""))
@@ -262,8 +251,6 @@ def register_to_tree(bot):
         economy_commands.setup_economy_commands(bot)
         gambling_commands.setup_gambling_commands(bot)
         notification_settings.setup_notification_commands(bot)
-        # 必要に応じて同期も行う
-        #bot.loop.create_task(bot.tree.sync())
         logger.info("Modules reloaded")
     except Exception as e:
         logger.error(f"Registration Error: {e}")
