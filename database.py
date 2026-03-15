@@ -16,9 +16,11 @@ async def init_db():
                     user_id INTEGER PRIMARY KEY,
                     balance REAL DEFAULT 0.0,
                     daily_exchange_total REAL DEFAULT 0.0,
-                    last_exchange_date TEXT DEFAULT ''
+                    last_exchange_date TEXT DEFAULT '',
+                    last_work TEXT DEFAULT ''
                 )
             """)
+
 
             # 2. ブラックジャックの戦績データ (blackjack_data.jsonの代わり)
             await db.execute("""
