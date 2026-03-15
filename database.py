@@ -54,11 +54,25 @@ async def init_db():
                 )
             """)
 
+            # 5. 通知設定データ (notification_settings.jsonの代わり)
+            # SQLiteにはBoolean(True/False)専用の型がないので、INTEGER(1=True, 0=False)で代用します
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS notification_settings (
+                    user_id INTEGER PRIMARY KEY,
+                    work INTEGER DEFAULT 1,
+                    external_work INTEGER DEFAULT 1,
+                    unemployment_insurance INTEGER DEFAULT 1,
+                    steal INTEGER DEFAULT 1
+                )
+            """)
+
+
             # 初期データが必要なもの（総発行ECの初期値など）のセットアップ
             await db.execute("""
                 INSERT OR IGNORE INTO system_config (key, value)
                 VALUES ('total_supply', '10000000.0')
             """)
+
 
             await db.commit()
         logger.info("Database initialized successfully.")
