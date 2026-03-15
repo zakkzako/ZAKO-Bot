@@ -11,6 +11,8 @@ import jst
 import logging
 import views.EconomyApplication as EconomyApplicationViews
 import device_monitor
+import database
+
 
 load_dotenv()
 JST = jst.get_jst()
