@@ -9,6 +9,7 @@ import math
 import os
 import jst
 import logging
+import database
 import views.EconomyApplication as EconomyApplicationViews
 from _images_ import Imgs
 
@@ -20,57 +21,37 @@ JST = jst.get_jst()
 NOTIFICATION_TYPE_WORK = 'work'
 WORK_COOLDOWN_MINUTES = 45
 
-def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
-    """
-    Helper function to schedule work notifications
-
-    Args:
-        user_id: Discord user ID
-        channel_id: Discord channel ID
-        cooldown_minutes: Minutes until notification should be sent
-        context: Context for error logging ('success' or 'cooldown')
-    """
+async def _schedule_work_notification(user_id: int, channel_id: int, cooldown_minutes: int, context: str) -> None:
+    """Helper function to schedule work notifications"""
     try:
         now = datetime.datetime.now(JST)
         target_time = now + datetime.timedelta(minutes=cooldown_minutes)
 
-        # 1. データを準備
-        new_data = {
-            'user_id': user_id,
-            'channel_id': channel_id,
-            'target_time': target_time.isoformat(),
-            'cooldown_min': cooldown_minutes,
-            'notification_type': NOTIFICATION_TYPE_WORK
-        }
+        # 既存の予約があるか確認
+        row = await database.fetch_one(
+            "SELECT id FROM reminders WHERE user_id = ? AND notification_type = ?",
+            (user_id, NOTIFICATION_TYPE_WORK)
+        )
 
-        # 2. ファイルを読み込んで queue を作成
-        queue: list[dict] = []
-        if os.path.exists("reminders.json"):
-            with open("reminders.json", "r") as f:
-                try:
-                    queue = json.load(f)
-                except json.JSONDecodeError:
-                    logger.warning("reminders.json is corrupted. Starting with an empty queue.")
-
-        # 3. 既存の予約があるか確認
-        if any(r.get('user_id') == user_id and r.get('notification_type') == NOTIFICATION_TYPE_WORK for r in queue):
+        if row:
             return  # 予約があればここで終了
 
-        # 4. 重複がなければ追加
-        queue.append(new_data)
+        # 重複がなければ追加
+        await database.execute_query(
+            "INSERT INTO reminders (user_id, channel_id, target_time, cooldown_min, notification_type) VALUES (?, ?, ?, ?, ?)",
+            (user_id, channel_id, target_time.isoformat(), cooldown_minutes, NOTIFICATION_TYPE_WORK)
+        )
 
-        with open("reminders.json", "w") as f:
-            json.dump(queue, f, indent=4)
-    except (OSError, json.JSONDecodeError) as e:
-        # 通知スケジューリングの失敗は無視し、メイン機能に影響を与えない
+    except Exception as e:
         logger.error(f"Failed to schedule {context} notification for user {user_id}: {e}")
 
 # ユーザー向け経済コマンド
 @app_commands.command(name="money", description="所持ECと TakasumiBOT コイン 換算額を確認します")
 async def money(interaction: discord.Interaction):
-    users = economy.load_json("users.json", {})
-    balance = users.get(str(interaction.user.id), {}).get("balance", 0.0)
+    row = await database.fetch_one("SELECT balance FROM users WHERE user_id = ?", (interaction.user.id,))
+    balance = row['balance'] if row else 0.0
     rate = await economy.get_current_rate()
+    
     embed = discord.Embed(title="あなたの所持金", color=0x00ff00)
     embed.add_field(name="所持EC", value=f"{balance:.2f} EC", inline=True)
     takasumimoney = math.floor(balance * rate)
@@ -79,14 +60,12 @@ async def money(interaction: discord.Interaction):
 
 @app_commands.command(name="rate", description="現在の1ECあたりの価値を確認します")
 async def rate(interaction: discord.Interaction):
-        r = await economy.get_current_rate()
-        await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} コイン**")
+    r = await economy.get_current_rate()
+    await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} コイン**")
 
 @app_commands.command(name="economy", description="経済システムの統計情報を確認します")
 async def economy_stats(interaction: discord.Interaction):
-    # 現在の経済データを読み込み
-    data = economy.load_json("economy_data.json", {"total_supply": 10000000.0})
-    total_supply = data["total_supply"]
+    total_supply = await economy.get_total_supply()
     rate = await economy.get_current_rate()
 
     embed = discord.Embed(title="経済統計", color=0x00ffff)
@@ -97,12 +76,12 @@ async def economy_stats(interaction: discord.Interaction):
 
 @app_commands.command(name="work", description="ECを獲得します（45分に1回）")
 async def ec_work(interaction: discord.Interaction):
-    success, res = economy.process_work(interaction.user.id)
+    success, res = await economy.process_work(interaction.user.id)
 
     if success:
         try:
-            # 通知をスケジュール
-            _schedule_work_notification(
+            # 通知をスケジュール (await を追加)
+            await _schedule_work_notification(
                 interaction.user.id,
                 interaction.channel_id,
                 WORK_COOLDOWN_MINUTES,
@@ -112,14 +91,14 @@ async def ec_work(interaction: discord.Interaction):
             logger.error(f"Failed to schedule work notification for user {interaction.user.id}: {e}")
             await interaction.response.send_message("⛏ ECを獲得しましたが、クールダウン通知のスケジュールに失敗しました。\n申し訳ありませんが、45分後に再度 `/work` を実行してクールダウンが終了しているかご確認ください。")
 
-        # 成功メッセージ（クールダウン終了時に通知が届くことを明示）
+        # 成功メッセージ
         await interaction.response.send_message(
             f"⛏ **{res} EC** を獲得しました！\n"
             f"{WORK_COOLDOWN_MINUTES}分後に `/work` が再度利用可能になったタイミングで通知を送ります。"
         )
 
     else:
-        # クールダウン中 - 残り時間で通知をスケジュール
+        # クールダウン中
         min_left = int(res.total_seconds() // 60)
 
         await interaction.response.send_message(
@@ -141,33 +120,30 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
         await interaction.response.send_message("このコマンドは管理者のテスト用のチャンネルでのみ使用できます。", ephemeral=True)
         return
 
-    """書き方は前バージョンに合わせてます  by yamatomato0105"""
     # EC -> TakasumiBOT コイン
     if type.value == "ec_to_tc":
         if amount <= 0:
             await interaction.response.send_message("金額は **0** より大きくしてください。", ephemeral=True)
             return
 
-        # [1] 現在のレートを取得
         current_rate = await economy.get_current_rate()
 
-        # [2] 制限チェック
-        is_ok, remaining = economy.check_exchange_limit(interaction.user.id, amount, current_rate)
+        is_ok, remaining = await economy.check_exchange_limit(interaction.user.id, amount, current_rate)
         if not is_ok:
             await interaction.response.send_message(f"❌ 上限オーバーです。\n本日の残り枠: {remaining:.0f} Money", ephemeral=True)
             return
         
-        # [3] 所持金から回収
-        success, collected = economy.collect_ec_for_exchange(interaction.user.id, amount)
+        success, collected = await economy.collect_ec_for_exchange(interaction.user.id, amount)
         if not success:
             await interaction.response.send_message("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
             return
 
-        # [4] 申請チャンネルに送信
-        config = economy.load_json("config.json", {})
+        # ログチャンネルをDBから取得
+        log_ch_row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'log_channel'")
+        log_ch_id = int(log_ch_row['value']) if log_ch_row else 1457893837824331786
         log_ch = None
         try:
-            log_ch = interaction.client.fetch_channel(config.get("log_channel", 1457893837824331786))
+            log_ch = interaction.client.get_channel(log_ch_id) or await interaction.client.fetch_channel(log_ch_id)
         except discord.NotFound:
             await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
             logger.error(f"Failed to fetch log channel for exchange_dev by user {interaction.user.id}")
@@ -176,17 +152,18 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
             await interaction.response.send_message("❌ 申請処理中に問題が発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
             logger.error(f"Log channel not found for exchange_dev by user {interaction.user.id}")
             return
+
         log_embed = discord.Embed(title="交換申請 (EC -> TC)", color=0xffa500)
         log_embed.add_field(name="ユーザー", value=interaction.user.mention)
         log_embed.add_field(name="換金額", value=f"{amount} EC")
         log_embed.add_field(name="換算額", value=f"{amount * current_rate:,.0f} コイン")
         log_embed.add_field(name="状態", value="-# 保留中")
-        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.EC_to_TC())
+        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.EC_to_TC(interaction.client))
 
-        # [5] ユーザーに応答
         embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
         embed.description = f"**{amount} EC**（約 {amount * current_rate:,.0f} コイン）の換金申請を受け付けました。\n管理者が承認するまでお待ちください。"
         embed.set_footer(text="手数料10%をあわせた金額を徴収しました")
+        await interaction.response.send_message(embed=embed)
 
     # TakasumiBOT コイン -> EC
     elif type.value == "tc_to_ec":
@@ -194,11 +171,8 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
             await interaction.response.send_message("金額は **0** より大きくしてください。", ephemeral=True)
             return
         
-        # [1] 現在のレートを取得
         current_rate = await economy.get_current_rate()
-
-        # [2] 必要な情報を計算
-        total_money_needed = amount * current_rate * 1.10  # 10% 手数料込み
+        total_money_needed = amount * current_rate * 1.10
         has_assets, current_assets = await economy.check_takasumi_assets(interaction.user.id, amount * current_rate)
         if not has_assets:
             embed_no_assets = discord.Embed(description=f"信頼性確保のため、換金相当額の1.5倍（{math.ceil(amount * current_rate * 1.5)} コイン）の資産が必要です。", color=0xff0000)
@@ -206,11 +180,12 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
             await interaction.response.send_message(embed=embed_no_assets, ephemeral=True)
             return
 
-        # [3] 申請チャンネルに送信
-        config = economy.load_json("config.json", {})
+        # ログチャンネルをDBから取得
+        log_ch_row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'log_channel'")
+        log_ch_id = int(log_ch_row['value']) if log_ch_row else 1457893837824331786
         log_ch = None
         try:
-            log_ch = interaction.client.fetch_channel(config.get("log_channel", 1457893837824331786))
+            log_ch = interaction.client.get_channel(log_ch_id) or await interaction.client.fetch_channel(log_ch_id)
         except discord.NotFound:
             await interaction.response.send_message("❌ 申請処理中にエラーが発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
             logger.error(f"Failed to fetch log channel for exchange_dev by user {interaction.user.id}")
@@ -219,57 +194,51 @@ async def exchange_dev(interaction: discord.Interaction, type: app_commands.Choi
             await interaction.response.send_message("❌ 申請処理中に問題が発生しました。管理者に連絡してください\n-# エラー： チャンネルの取得に失敗しました", ephemeral=True)
             logger.error(f"Log channel not found for exchange_dev by user {interaction.user.id}")
             return
+
         log_embed = discord.Embed(title="交換申請 (TC -> EC)", color=0x00ffff)
         log_embed.add_field(name="ユーザー", value=interaction.user.mention)
         log_embed.add_field(name="発行額", value=f"{amount} EC")
         log_embed.add_field(name="合計請求額", value=f"{total_money_needed:,.0f} コイン")
         log_embed.add_field(name="状態", value="-# 保留中")
-        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.TC_to_EC())
+        await log_ch.send(embed=log_embed, view=EconomyApplicationViews.TC_to_EC(interaction.client))
+        await interaction.response.send_message("申請を送信しました。", ephemeral=True)
 
 @app_commands.command(name="exchange", description="ECを換金申請します（1日2万Moneyまで）")
 async def exchange(interaction: discord.Interaction, amount: float):
-    await interaction.response.defer() # タイムアウト対策
+    await interaction.response.defer()
     
-    # (1) 金額が0以下でないかチェック
-    # (2) 現在のレートを取得
     rate = await economy.get_current_rate()
 
-    # (3) 【追加】1日2万制限のチェックを呼び出す
-    is_ok, remaining = economy.check_exchange_limit(interaction.user.id, amount, rate)
+    is_ok, remaining = await economy.check_exchange_limit(interaction.user.id, amount, rate)
     if not is_ok:
         await interaction.followup.send(f"❌ 上限オーバーです。本日の残り枠: {remaining:.0f} Money")
         return
 
-    # (4) ECの没収処理 (collect_ec_for_exchange)
-    success, collected = economy.collect_ec_for_exchange(interaction.user.id, amount)
+    success, collected = await economy.collect_ec_for_exchange(interaction.user.id, amount)
     
     if success:
-        # (5) 【追加】没収できたら、その金額を本日の累計に加算する
-        economy.add_exchange_record(interaction.user.id, amount, rate)
+        await economy.add_exchange_record(interaction.user.id, amount, rate)
         
-        # (6) ユーザーへ応答 & 管理者へログ送信
-        config = economy.load_json("config.json", {})
-        log_ch = interaction.client.get_channel(config.get("log_channel"))
+        # ログチャンネルをDBから取得
+        log_ch_row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'log_channel'")
+        log_ch_id = int(log_ch_row['value']) if log_ch_row else None
+        log_ch = interaction.client.get_channel(log_ch_id) if log_ch_id else None
         
         if log_ch:
             log_embed = discord.Embed(title="💰 換金申請", color=0xffa500)
             log_embed.add_field(name="ユーザー", value=interaction.user.mention)
             log_embed.add_field(name="換金額", value=f"{amount} EC")
             log_embed.add_field(name="換算額", value=f"{amount * rate:,.0f} Money")
-            # 承認・拒否リアクションで core_system.handle_reaction_event が動く仕組み
             msg = await log_ch.send(embed=log_embed)
             await msg.add_reaction("✅")
 
-        # (7) ユーザーへ完了報告
         embed = discord.Embed(title="✅ 換金申請を受理しました", color=0x00ff00)
         embed.description = f"**{amount} EC** (約 {amount * rate:,.0f} Money) の換金申請を受け付けました。\n管理者が承認するまでお待ちください。"
         embed.set_footer(text="※手数料10%が含まれた金額が既に差し引かれています")
         
-        await interaction.followup.send(embed=embed) # deferしているので followup を使う
+        await interaction.followup.send(embed=embed)
     else:
         await interaction.followup.send("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
-
-
 
 @app_commands.command(name="buy_ec", description="Takasumi moneyでECを購入申請します（手数料5%）")
 async def buy_ec(interaction: discord.Interaction, amount: float):
@@ -282,7 +251,6 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
     fee = base_cost * 0.05
     total_money = base_cost + fee
 
-    # 【重要】1.5倍の資産チェックを実行
     has_assets, current_assets = await economy.check_takasumi_assets(interaction.user.id, base_cost)
 
     if not has_assets:
@@ -293,9 +261,11 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
         )
         return
 
-    # 管理者用ログ送信
-    config = economy.load_json("config.json", {})
-    log_ch = interaction.client.get_channel(config.get("log_channel"))
+    # ログチャンネルをDBから取得
+    log_ch_row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'log_channel'")
+    log_ch_id = int(log_ch_row['value']) if log_ch_row else None
+    log_ch = interaction.client.get_channel(log_ch_id) if log_ch_id else None
+
     if log_ch:
         log_embed = discord.Embed(title="💎 EC購入申請", color=0x00ffff)
         log_embed.add_field(name="ユーザー", value=interaction.user.mention)
@@ -304,7 +274,6 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
         msg = await log_ch.send(embed=log_embed)
         await msg.add_reaction("✅")
 
-    # ユーザーへの応答
     embed = discord.Embed(title="🛒 購入申請を受け付けました", color=0xffff00)
     embed.add_field(name="購入希望額", value=f"{amount} EC", inline=True)
     embed.add_field(name="レート", value=f"1 EC = {rate:.4f}", inline=True)
@@ -320,4 +289,3 @@ def setup_economy_commands(bot):
     for c in cmds:
         if c.name not in [cmd.name for cmd in bot.tree.get_commands()]:
             bot.tree.add_command(c)
-#う
