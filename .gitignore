@@ -21,6 +21,8 @@ venv/
 
 *.json
 
+*.db
+
 *.zip
 
 *.sh
