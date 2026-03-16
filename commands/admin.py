@@ -9,7 +9,8 @@ import jst
 import core_system
 import updater
 import logging
-import database # これを追加
+import database
+import json # db-viewのJSON整形用に追加
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,86 @@ async def money_set(interaction: discord.Interaction, user: discord.Member, amou
     # await を追加
     await economy.set_money(user.id, amount)
     await interaction.response.send_message(f"{user.mention} の金額を {amount} に設定しました。", ephemeral=True)
+
+
+# === ここから新規追加のDB管理コマンド ===
+
+@admin_group.command(name="db-view", description="［ Bot 管理者専用 ］ ユーザーのDBデータをJSON風に確認します")
+@app_commands.describe(user="確認したいユーザー")
+async def db_view(interaction: discord.Interaction, user: discord.Member):
+    if not is_admin(interaction.user.id):
+        return await interaction.response.send_message("権限がありません", ephemeral=True)
+
+    uid = user.id
+    data = {}
+
+    u_row = await database.fetch_one("SELECT * FROM users WHERE user_id = ?", (uid,))
+    if u_row: data["users"] = dict(u_row)
+
+    b_row = await database.fetch_one("SELECT * FROM blackjack_stats WHERE user_id = ?", (uid,))
+    if b_row: data["blackjack_stats"] = dict(b_row)
+
+    n_row = await database.fetch_one("SELECT * FROM notification_settings WHERE user_id = ?", (uid,))
+    if n_row: data["notification_settings"] = dict(n_row)
+
+    r_rows = await database.fetch_all("SELECT * FROM reminders WHERE user_id = ?", (uid,))
+    if r_rows: data["reminders"] = [dict(r) for r in r_rows]
+
+    if not data:
+        return await interaction.response.send_message("このユーザーのデータはデータベースに見つかりませんでした。", ephemeral=True)
+
+    json_text = json.dumps(data, indent=2, ensure_ascii=False)
+    await interaction.response.send_message(f"```json\n{json_text}\n```", ephemeral=True)
+
+
+@admin_group.command(name="db-edit", description="［ Bot 管理者専用 ］ DBの特定の値を直接書き換えます")
+@app_commands.describe(user="対象ユーザー", column="変更する項目", value="新しい値")
+@app_commands.choices(table=[
+    app_commands.Choice(name="users (所持金, 換金履歴など)", value="users"),
+    app_commands.Choice(name="blackjack_stats (カジノ戦績など)", value="blackjack_stats"),
+    app_commands.Choice(name="notification_settings (通知ON/OFF)", value="notification_settings")
+])
+async def db_edit(interaction: discord.Interaction, user: discord.Member, table: app_commands.Choice[str], column: str, value: str):
+    if not is_admin(interaction.user.id):
+        return await interaction.response.send_message("権限がありません", ephemeral=True)
+
+    allowed_columns = {
+        "users": ["balance", "daily_exchange_total", "last_exchange_date", "last_work"],
+        "blackjack_stats": ["win", "loss", "draw", "total_profit"],
+        "notification_settings": ["work", "external_work", "unemployment_insurance", "steal"]
+    }
+
+    table_name = table.value
+    if column not in allowed_columns.get(table_name, []):
+        available = ", ".join(allowed_columns[table_name])
+        return await interaction.response.send_message(f"許可されていない項目名です。利用可能な項目: {available}", ephemeral=True)
+
+    try:
+        if column in ["balance", "daily_exchange_total", "total_profit"]:
+            val = float(value)
+        elif column in ["win", "loss", "draw", "work", "external_work", "unemployment_insurance", "steal"]:
+            val = int(value)
+        else:
+            val = str(value)
+    except ValueError:
+        return await interaction.response.send_message("値の形式（数字など）が間違っています。", ephemeral=True)
+
+    query = f"UPDATE {table_name} SET {column} = ? WHERE user_id = ?"
+    await database.execute_query(query, (val, user.id))
+
+    await interaction.response.send_message(f"更新完了: {table_name} の {column} を {val} に変更しました。", ephemeral=True)
+
+
+@admin_group.command(name="db-backup", description="［ Bot 管理者専用 ］ 現在のDBファイルをダウンロードします")
+async def db_backup(interaction: discord.Interaction):
+    if not is_admin(interaction.user.id):
+        return await interaction.response.send_message("権限がありません", ephemeral=True)
+
+    if not os.path.exists(database.DB_FILE):
+        return await interaction.response.send_message("データベースファイルが存在しません。", ephemeral=True)
+
+    file = discord.File(database.DB_FILE, filename=f"bot_data_backup_{datetime.datetime.now(JST).strftime('%Y%m%d_%H%M')}.db")
+    await interaction.response.send_message("現在のデータベースファイルのバックアップです。PC上の「DB Browser for SQLite」などのソフトで直接開いて編集・確認が可能です。", file=file, ephemeral=True)
 
 def setup_admin_commands(bot):
     existing = [cmd.name for cmd in bot.tree.get_commands()]
