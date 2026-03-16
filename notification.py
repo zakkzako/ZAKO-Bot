@@ -1,11 +1,11 @@
 import discord
 import datetime
 import requests
-import json
 import os
 import jst
 import re
 import logging
+import database
 from _notification_types_ import NOTIFICATION_TYPES
 
 JST = jst.get_jst()
@@ -28,7 +28,6 @@ JOB_MAP = {
 async def handle_work_detection(bot, message, embed):
     now = jst.now()
 
-    # interaction_metadata を使用してユーザーを特定 （警告回避）
     user = None
     if message.interaction_metadata:
         user = message.interaction_metadata.user
@@ -55,25 +54,13 @@ async def handle_work_detection(bot, message, embed):
     except Exception as e:
         logger.warning(f"【{jst.now().strftime('%Y/%m/%d %H:%M:%S')}】APIエラー: {e}")
 
-    # 通知予約データの作成
+    # 通知予約データの作成とDBへの保存
     target_time = now + datetime.timedelta(minutes=cd_min)
-    new_data = {
-        'user_id': user.id,
-        'channel_id': message.channel.id,
-        'target_time': target_time.isoformat(),
-        'cooldown_min': cd_min,
-        'notification_type': NOTIFICATION_TYPES.EXTERNAL_WORK
-    }
-
-    queue = []
-    if os.path.exists("reminders.json"):
-        with open("reminders.json", "r") as f:
-            try: queue = json.load(f)
-            except json.JSONDecodeError: queue = []
-
-    queue.append(new_data)
-    with open("reminders.json", "w") as f:
-        json.dump(queue, f, indent=4)
+    
+    await database.execute_query(
+        "INSERT INTO reminders (user_id, channel_id, target_time, cooldown_min, notification_type) VALUES (?, ?, ?, ?, ?)",
+        (user.id, message.channel.id, target_time.isoformat(), cd_min, NOTIFICATION_TYPES.EXTERNAL_WORK)
+    )
 
     # 応答
     res_embed = discord.Embed(description=f"`/work` を検知しました。\n{cd_min}分後にこのチャンネルで通知します", color=0x00ff00)
@@ -81,41 +68,26 @@ async def handle_work_detection(bot, message, embed):
 
 async def handle_unemployment_detection(bot, message, user, description):
     """失業保険のメッセージから日時を抽出して予約する"""
-    # 正規表現で「有効期限はYYYY/M/D H:M:S」を抽出
     match = re.search(r'有効期限は(\d{4}/\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}:\d{1,2})', description)
 
     if match:
         logger.debug(f"【{datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}】{user.name} の失業保険の購入を検知")
 
         expiry_str = match.group(1)
-        # 文字列を日時に変換してタイムゾーン(JST)を設定
         target_time = datetime.datetime.strptime(expiry_str, '%Y/%m/%d %H:%M:%S')
         target_time = JST.localize(target_time)
 
-        # 失効の1分前に通知するために1分引く
         notification_tyme = target_time - datetime.timedelta(minutes=1)
 
         target_channel = message.channel.id
         if message.guild.id == 1455450215313309763:
             target_channel = 1473864813506465903
 
-        new_data = {
-            'user_id': user.id,
-            'channel_id': target_channel,
-            'target_time': notification_tyme.isoformat(),
-            'notification_type': NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE
-        }
-
-        # 既存の保存ロジック（work.py内にあるはずの処理）を流用
-        queue = []
-        if os.path.exists("reminders.json"):
-            with open("reminders.json", "r") as f:
-                try: queue = json.load(f)
-                except: queue = []
-
-        queue.append(new_data)
-        with open("reminders.json", "w") as f:
-            json.dump(queue, f, indent=4)
+        # DBへの保存
+        await database.execute_query(
+            "INSERT INTO reminders (user_id, channel_id, target_time, cooldown_min, notification_type) VALUES (?, ?, ?, ?, ?)",
+            (user.id, target_channel, notification_tyme.isoformat(), 0, NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE)
+        )
 
         embed = discord.Embed(description=f"失業保険の購入を検知しました\n失効前に通知します\n-# 失効： {expiry_str}", color=0x00ff00)
         await message.channel.send(embed=embed)
@@ -123,7 +95,7 @@ async def handle_unemployment_detection(bot, message, user, description):
 async def handle_steal_detection(bot, message):
     now = jst.now()
 
-    user: None
+    user = None
     if message.interaction_metadata:
         user = message.interaction_metadata.user
     elif message.mentions:
@@ -133,23 +105,13 @@ async def handle_steal_detection(bot, message):
 
     logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name} のstealを検知")
 
-    # 通知予約データの作成
     target_time = now + datetime.timedelta(hours=2)
-    new_data = {
-        'user_id': user.id,
-        'channel_id': message.channel.id,
-        'target_time': target_time.isoformat(),
-        'notification_type': NOTIFICATION_TYPES.STEAL
-    }
-    queue = []
-    if os.path.exists("reminders.json"):
-        with open("reminders.json", "r") as f:
-            try: queue = json.load(f)
-            except json.JSONDecodeError: queue = []
-    queue.append(new_data)
-    with open("reminders.json", "w") as f:
-        json.dump(queue, f, indent=4)
+    
+    # DBへの保存
+    await database.execute_query(
+        "INSERT INTO reminders (user_id, channel_id, target_time, cooldown_min, notification_type) VALUES (?, ?, ?, ?, ?)",
+        (user.id, message.channel.id, target_time.isoformat(), 120, NOTIFICATION_TYPES.STEAL)
+    )
 
-    # 応答
     res_embed = discord.Embed(description=f"`/steal` を検知しました。\n2時間後にこのチャンネルで通知します", color=0x00ff00)
     await message.channel.send(embed=res_embed)

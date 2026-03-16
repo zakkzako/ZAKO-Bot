@@ -1,65 +1,55 @@
 import discord
 from discord import app_commands
-import json
-import os
 import logging
+import database
 
 logger = logging.getLogger(__name__)
-
-NOTIFICATION_SETTINGS_FILE = "notification_settings.json"
 
 class NotificationSettingsView(discord.ui.View):
     """通知設定用のUI"""
     
     def __init__(self, user_id: int, current_settings: dict):
-        super().__init__(timeout=300)  # 5分でタイムアウト
+        super().__init__(timeout=300)
         self.user_id = user_id
         self.settings = current_settings.copy()
         self.is_modified = False
     
-    def load_settings(user_id: int) -> dict:
-        """ユーザーの通知設定を読み込む"""
-        if not os.path.exists(NOTIFICATION_SETTINGS_FILE):
+    @staticmethod
+    async def load_settings(user_id: int) -> dict:
+        """ユーザーの通知設定をDBから読み込む"""
+        row = await database.fetch_one("SELECT * FROM notification_settings WHERE user_id = ?", (user_id,))
+        
+        if row:
+            return {
+                'work': bool(row['work']),
+                'external_work': bool(row['external_work']),
+                'unemployment_insurance': bool(row['unemployment_insurance']),
+                'steal': bool(row['steal'])
+            }
+        else:
+            # データがない場合はすべてTrue(ON)を返す
             return {
                 'work': True,
                 'external_work': True,
                 'unemployment_insurance': True,
                 'steal': True
             }
-        
-        with open(NOTIFICATION_SETTINGS_FILE, 'r', encoding='utf-8') as f:
-            try:
-                all_settings = json.load(f)
-                user_settings = all_settings.get(str(user_id), {})
-                # デフォルト値で埋める
-                return {
-                    'work': user_settings.get('work', True),
-                    'external_work': user_settings.get('external_work', True),
-                    'unemployment_insurance': user_settings.get('unemployment_insurance', True),
-                    'steal': user_settings.get('steal', True)
-                }
-            except json.JSONDecodeError:
-                return {
-                    'work': True,
-                    'external_work': True,
-                    'unemployment_insurance': True,
-                    'steal': True
-                }
     
-    def save_settings(user_id: int, settings: dict):
-        """ユーザーの通知設定を保存"""
-        all_settings = {}
-        if os.path.exists(NOTIFICATION_SETTINGS_FILE):
-            with open(NOTIFICATION_SETTINGS_FILE, 'r', encoding='utf-8') as f:
-                try:
-                    all_settings = json.load(f)
-                except json.JSONDecodeError:
-                    all_settings = {}
-        
-        all_settings[str(user_id)] = settings
-        
-        with open(NOTIFICATION_SETTINGS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(all_settings, f, indent=4, ensure_ascii=False)
+    @staticmethod
+    async def save_settings(user_id: int, settings: dict):
+        """ユーザーの通知設定をDBに保存"""
+        query = """
+            INSERT OR REPLACE INTO notification_settings 
+            (user_id, work, external_work, unemployment_insurance, steal) 
+            VALUES (?, ?, ?, ?, ?)
+        """
+        await database.execute_query(query, (
+            user_id, 
+            int(settings['work']), 
+            int(settings['external_work']), 
+            int(settings['unemployment_insurance']), 
+            int(settings['steal'])
+        ))
     
     def create_embed(self) -> discord.Embed:
         """現在の設定を表示するEmbedを作成"""
@@ -96,7 +86,7 @@ class NotificationSettingsView(discord.ui.View):
         )
         
         if self.is_modified:
-            embed.set_footer(text=" 「変更を保存」ボタンを推して変更を保存してください")
+            embed.set_footer(text=" 「変更を保存」ボタンを押して変更を保存してください")
         else:
             embed.set_footer(text="ボタンをクリックしてON/OFFを切り替えてください")
         
@@ -148,7 +138,7 @@ class NotificationSettingsView(discord.ui.View):
             await interaction.response.send_message("このボタンはあなたは操作できません", ephemeral=True)
             return
         
-        NotificationSettingsView.save_settings(self.user_id, self.settings)
+        await NotificationSettingsView.save_settings(self.user_id, self.settings)
         self.is_modified = False
         
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
@@ -158,7 +148,7 @@ class NotificationSettingsView(discord.ui.View):
 async def notification_settings(interaction: discord.Interaction):
     """通知設定コマンド"""
     user_id = interaction.user.id
-    settings = NotificationSettingsView.load_settings(user_id)
+    settings = await NotificationSettingsView.load_settings(user_id)
     view = NotificationSettingsView(user_id, settings)
     
     await interaction.response.send_message(

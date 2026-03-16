@@ -1,34 +1,19 @@
 import random
-import json
-import os
 import datetime
-import pytz
 import jst
 import logging
+import database
 
 JST = jst.get_jst()
-DATA_FILE = "blackjack_data.json"
 logger = logging.getLogger(__name__)
 
-def load_stats():
-    if not os.path.exists(DATA_FILE): return {}
-    with open(DATA_FILE, "r") as f:
-        try: return json.load(f)
-        except: return {}
-
-def save_result(user_id, result_type, amount_change):
-    stats = load_stats()
-    uid = str(user_id)
-    if uid not in stats:
-        stats[uid] = {"win": 0, "loss": 0, "draw": 0, "total_profit": 0.0}
-    stats[uid][result_type] += 1
-    stats[uid]["total_profit"] += amount_change
-    try:
-        with open(DATA_FILE, "w") as f:
-            json.dump(stats, f, indent=4)
-    except Exception as e:
-        logger.error(f"Error saving stats: {e}")
-        return
+async def save_result(user_id, result_type, amount_change):
+    # まずユーザーの戦績レコードが存在するか確認し、無ければ作成
+    await database.execute_query("INSERT OR IGNORE INTO blackjack_stats (user_id) VALUES (?)", (user_id,))
+    
+    # 勝敗を引き分け・勝ち・負けの対応するカラムに+1し、利益を更新
+    query = f"UPDATE blackjack_stats SET {result_type} = {result_type} + 1, total_profit = total_profit + ? WHERE user_id = ?"
+    await database.execute_query(query, (amount_change, user_id))
 
     log_now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
     logger.info(f"【{log_now}】BJ記録: User:{user_id} Result:{result_type} Change:{amount_change}")
