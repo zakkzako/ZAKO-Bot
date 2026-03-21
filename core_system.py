@@ -108,7 +108,7 @@ async def check_reminders(bot):
                         await channel.send(f"<@{user_id}> 失業保険が間もなく失効します\n</pay:1132518157119135775> を実行して失業保険を購入しましょう。")
 
                 elif notification_type == NOTIFICATION_TYPES.WORK:
-                    await channel.send(f"<@{user_id}> `/work` から{cooldown_min}分が経過しました。\n再度 </work:1471034168853925942> を実行できます！")
+                    await channel.send(f"<@{user_id}> `/work` から{cooldown_min}分が経過しました。\n再度 </work:1483047867366113403> を実行できます！")
 
                 elif notification_type == NOTIFICATION_TYPES.EXTERNAL_WORK:
                     await channel.send(f"<@{user_id}> workから{cooldown_min}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
