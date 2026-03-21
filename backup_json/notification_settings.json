@@ -1,0 +1,32 @@
+{
+    "1158268839721717781": {
+        "work": true,
+        "external_work": true,
+        "unemployment_insurance": true,
+        "steal": false
+    },
+    "1286942627991781480": {
+        "work": true,
+        "external_work": true,
+        "unemployment_insurance": true,
+        "steal": true
+    },
+    "1467318420532887836": {
+        "work": true,
+        "external_work": true,
+        "unemployment_insurance": true,
+        "steal": true
+    },
+    "1205500585512534080": {
+        "work": true,
+        "external_work": false,
+        "unemployment_insurance": true,
+        "steal": true
+    },
+    "1390598832425013370": {
+        "work": false,
+        "external_work": false,
+        "unemployment_insurance": false,
+        "steal": false
+    }
+}

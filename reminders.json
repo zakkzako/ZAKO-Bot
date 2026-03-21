@@ -1,0 +1,403 @@
+[
+    {
+        "user_id": 1049604842320044043,
+        "channel_id": 1480525327984758845,
+        "target_time": "2026-03-16T20:23:11+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1049604842320044043,
+        "channel_id": 1480525327984758845,
+        "target_time": "2026-03-16T20:23:11+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1295633033365422111,
+        "channel_id": 1476070618171703500,
+        "target_time": "2026-03-17T01:26:28+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1287776137325445125,
+        "channel_id": 1473864813506465903,
+        "target_time": "2026-03-17T08:20:48+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1251426167467151403,
+        "channel_id": 1473864813506465903,
+        "target_time": "2026-03-17T11:08:38+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1160453651660288041,
+        "channel_id": 1473864813506465903,
+        "target_time": "2026-03-17T12:43:22+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1190143268718133331,
+        "channel_id": 1480907610935922758,
+        "target_time": "2026-03-17T21:49:49+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1221776859629490228,
+        "channel_id": 1470020761661083760,
+        "target_time": "2026-03-18T19:38:57+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1221776859629490228,
+        "channel_id": 1470020761661083760,
+        "target_time": "2026-03-18T19:38:57+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1355589565230088282,
+        "channel_id": 1473864813506465903,
+        "target_time": "2026-03-20T13:38:42+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1342454247916175360,
+        "channel_id": 1473864813506465903,
+        "target_time": "2026-03-20T16:47:25+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1221420143591292968,
+        "channel_id": 1408691457308626996,
+        "target_time": "2026-03-20T17:48:28+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1221420143591292968,
+        "channel_id": 1408691457308626996,
+        "target_time": "2026-03-20T17:48:28+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1360207839779487754,
+        "channel_id": 1470020550037475425,
+        "target_time": "2026-03-20T19:25:59+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1360207839779487754,
+        "channel_id": 1470020550037475425,
+        "target_time": "2026-03-20T19:25:59+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1293899336396308496,
+        "channel_id": 1480463962431553537,
+        "target_time": "2026-03-21T13:09:12+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1331885412167192606,
+        "channel_id": 1476070618171703500,
+        "target_time": "2026-03-21T14:59:05+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1302178108102676510,
+        "channel_id": 1480525327984758845,
+        "target_time": "2026-03-21T19:32:11+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1302178108102676510,
+        "channel_id": 1480525327984758845,
+        "target_time": "2026-03-21T19:32:11+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1302190206253793280,
+        "channel_id": 1473864813506465903,
+        "target_time": "2026-03-22T11:22:45+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1382970899455541289,
+        "channel_id": 1476930168747593769,
+        "target_time": "2026-03-22T13:44:02+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1382970899455541289,
+        "channel_id": 1476930168747593769,
+        "target_time": "2026-03-22T13:44:02+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1424185782016413826,
+        "channel_id": 1475076536968151183,
+        "target_time": "2026-03-22T14:27:51+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1424185782016413826,
+        "channel_id": 1475076536968151183,
+        "target_time": "2026-03-22T14:27:51+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1275233053601435703,
+        "channel_id": 1473864813506465903,
+        "target_time": "2026-03-23T08:00:22+09:00",
+        "notification_type": "unemployment_insurance"
+    },
+    {
+        "user_id": 1221776859629490228,
+        "channel_id": 1470020761661083760,
+        "target_time": "2026-03-16T16:28:05.995735+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1221776859629490228,
+        "channel_id": 1470020761661083760,
+        "target_time": "2026-03-16T16:28:06.503285+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1360207839779487754,
+        "channel_id": 1482399648697028764,
+        "target_time": "2026-03-16T16:31:49.747137+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1360207839779487754,
+        "channel_id": 1482399648697028764,
+        "target_time": "2026-03-16T16:31:50.165612+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1205500585512534080,
+        "channel_id": 1475076260378972202,
+        "target_time": "2026-03-16T16:32:17.071134+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1355589565230088282,
+        "channel_id": 1455515562255056948,
+        "target_time": "2026-03-16T17:40:33.656683+09:00",
+        "notification_type": "steal"
+    },
+    {
+        "user_id": 1355589565230088282,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T16:41:02.253281+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1355589565230088282,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T16:26:03.271603+09:00",
+        "cooldown_min": 45,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 1108019007312908378,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T16:41:14.292115+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1297821384076165180,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T16:45:51.251859+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1205500585512534080,
+        "channel_id": 1475076260378972202,
+        "target_time": "2026-03-16T16:46:20.569740+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1286942627991781480,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T16:55:36.892060+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1286942627991781480,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T16:40:37.425606+09:00",
+        "cooldown_min": 45,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 1479666467531391062,
+        "channel_id": 1481243296285065387,
+        "target_time": "2026-03-16T16:57:57.806022+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1293899336396308496,
+        "channel_id": 1480463962431553537,
+        "target_time": "2026-03-16T17:00:58.506989+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1342454247916175360,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T17:01:43.418062+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1342454247916175360,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T16:46:47.769135+09:00",
+        "cooldown_min": 45,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 1221420143591292968,
+        "channel_id": 1481686622725476413,
+        "target_time": "2026-03-16T17:05:45.556069+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1221420143591292968,
+        "channel_id": 1481686622725476413,
+        "target_time": "2026-03-16T17:05:45.992671+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1221420143591292968,
+        "channel_id": 1481686622725476413,
+        "target_time": "2026-03-16T17:05:47.163950+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1341777401440370774,
+        "channel_id": 1480884312663396413,
+        "target_time": "2026-03-16T17:06:52.479912+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1341777401440370774,
+        "channel_id": 1480884312663396413,
+        "target_time": "2026-03-16T17:07:03.933776+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1341777401440370774,
+        "channel_id": 1480884312663396413,
+        "target_time": "2026-03-16T17:07:04.476365+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1341777401440370774,
+        "channel_id": 1480884312663396413,
+        "target_time": "2026-03-16T17:07:04.834799+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1221776859629490228,
+        "channel_id": 1470020761661083760,
+        "target_time": "2026-03-16T16:52:34.854721+09:00",
+        "cooldown_min": 45,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 928208502294450217,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T17:10:42.253284+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1205441987046801419,
+        "channel_id": 1475076360723632192,
+        "target_time": "2026-03-16T16:56:19.076998+09:00",
+        "cooldown_min": 45,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 1205441987046801419,
+        "channel_id": 1475076360723632192,
+        "target_time": "2026-03-16T17:11:25.637780+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1205441987046801419,
+        "channel_id": 1475076360723632192,
+        "target_time": "2026-03-16T17:11:26.195596+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1205500585512534080,
+        "channel_id": 1475076260378972202,
+        "target_time": "2026-03-16T17:11:30.360387+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1305439305828663328,
+        "channel_id": 1422929570595602484,
+        "target_time": "2026-03-16T17:12:25.277286+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1482310063581565064,
+        "channel_id": 1422929570595602484,
+        "target_time": "2026-03-16T17:12:34.046637+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1241319929232363534,
+        "channel_id": 1455450216261091390,
+        "target_time": "2026-03-16T17:17:53.560310+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1360207839779487754,
+        "channel_id": 1482399648697028764,
+        "target_time": "2026-03-16T17:08:33.069006+09:00",
+        "cooldown_min": 45,
+        "notification_type": "work"
+    },
+    {
+        "user_id": 1049604842320044043,
+        "channel_id": 1480463851236360355,
+        "target_time": "2026-03-16T17:24:49.393435+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    },
+    {
+        "user_id": 1049604842320044043,
+        "channel_id": 1480463851236360355,
+        "target_time": "2026-03-16T17:24:49.859084+09:00",
+        "cooldown_min": 60,
+        "notification_type": "external_work"
+    }
+]

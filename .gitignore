@@ -19,7 +19,11 @@ venv/
 .nvm/
 
 
-*.json
+*.db
+
+*.txt
+
+*a.py
 
 *.zip
 
