@@ -1,13 +1,8 @@
 import discord
 from discord import app_commands
-import json
-import os
 import importlib
 import logging
-import work
-import jikoku
 import time
-import economy
 import datetime
 import pytz
 import jst

@@ -8,10 +8,10 @@ import notification
 import updater
 import jikoku
 import economy
-import general_commands
-import admin_commands
-import economy_commands
-import gambling_commands
+from commands import general
+from commands import admin
+from commands import economy_cmds
+from commands import gambling
 import jst
 import logging
 import notification_settings
@@ -241,15 +241,15 @@ async def handle_reaction_event(bot, payload):
 
 def register_to_tree(bot):
     try:
-        importlib.reload(general_commands)
-        importlib.reload(admin_commands)
-        importlib.reload(economy_commands) 
-        importlib.reload(gambling_commands)
+        importlib.reload(general)
+        importlib.reload(admin)
+        importlib.reload(economy_cmds) 
+        importlib.reload(gambling)
         importlib.reload(notification_settings) 
-        general_commands.setup_general_commands(bot)
-        admin_commands.setup_admin_commands(bot)
-        economy_commands.setup_economy_commands(bot)
-        gambling_commands.setup_gambling_commands(bot)
+        general.setup_general_commands(bot)
+        admin.setup_admin_commands(bot)
+        economy_cmds.setup_economy_commands(bot)
+        gambling.setup_gambling_commands(bot)
         notification_settings.setup_notification_commands(bot)
         logger.info("Modules reloaded")
     except Exception as e:
