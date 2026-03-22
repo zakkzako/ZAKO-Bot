@@ -29,7 +29,7 @@ async def admin_reload(interaction: discord.Interaction):
         await interaction.response.send_message("このコマンドを実行するための権限がありません", ephemeral=True)
         return
     try:
-        commit_hash = updater.get_current_version()
+        commit_hash = await updater.get_current_version()
         importlib.reload(core_system)
         importlib.reload(economy)
         core_system.register_to_tree(interaction.client)

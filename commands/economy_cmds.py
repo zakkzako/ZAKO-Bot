@@ -61,37 +61,32 @@ async def economy_stats(interaction: discord.Interaction):
     embed.add_field(name="交換レート", value=f"1 EC = {rate:.4f} Money", inline=False)
     await interaction.response.send_message(embed=embed)
 
-@app_commands.command(name="work", description="ECを獲得します（45分に1回）")
+@app_commands.command(name="ec_work", description="ECを獲得します（45分に1回）")
 async def ec_work(interaction: discord.Interaction):
     """EC獲得コマンドの本体"""
-    # 裏側の経済システムで処理を実行
     success, res = await economy.process_work(interaction.user.id)
-
     if success:
-        # 1. 成功時のメッセージを表示
+        # 1. 成功時のメッセージ
         await interaction.response.send_message(
             f"⛏ **{res} EC** を獲得しました！\n"
-            f"{WORK_COOLDOWN_MINUTES}分後に `/work` が再度利用可能になったタイミングで通知を送ります。"
+            f"{WORK_COOLDOWN_MINUTES}分後に `/ec_work` が再度利用可能になったタイミングで通知を送ります。"
         )
-
-        # 2. 通知をスケジュール（awaitを忘れずに！）
+        # 2. 通知をスケジュール
         await _schedule_work_notification(
             interaction.user.id,
             interaction.channel_id,
             WORK_COOLDOWN_MINUTES
         )
-
     else:
         # クールダウン中の処理
         min_left = int(res.total_seconds() // 60)
-        
+
         # 1. クールダウン終了時の通知をスケジュール（現在の残り時間で予約）
         await _schedule_work_notification(
             interaction.user.id,
             interaction.channel_id,
             min_left
         )
-
         # 2. ユーザーへの応答
         await interaction.response.send_message(
             f"クールタイム中 あと {min_left}分 お待ちください。\n"

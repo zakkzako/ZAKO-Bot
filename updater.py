@@ -47,3 +47,34 @@ async def perform_full_update():
     except Exception:
         logger.exception("[Updater] エラーが発生しました")
     return False
+
+async def get_current_version():
+    """ローカルとリモートの最新コミットハッシュを取得して辞書で返す"""
+    versions = {"local": "unknown", "remote": "unknown"}
+    try:
+        # ローカルの現在のコミットハッシュを取得
+        local_proc = await asyncio.create_subprocess_exec(
+            "git", "rev-parse", "HEAD",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        local_out, _ = await local_proc.communicate()
+        if local_proc.returncode == 0:
+            versions["local"] = local_out.decode().strip()
+
+        # リモート(origin/mainなど)の最新コミットハッシュを取得
+        # ※ 事前に git fetch が必要ですが、admin_reload側でやっていない場合はここで簡易的に取得します
+        remote_proc = await asyncio.create_subprocess_exec(
+            "git", "ls-remote", "origin", "HEAD",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        remote_out, _ = await remote_proc.communicate()
+        if remote_proc.returncode == 0:
+            # ls-remote の出力は "hash\trefs/heads/main" のような形式なので分割
+            versions["remote"] = remote_out.decode().split()[0]
+            
+    except Exception as e:
+        logger.error(f"[Updater] バージョン取得エラー: {e}")
+    
+    return versions
