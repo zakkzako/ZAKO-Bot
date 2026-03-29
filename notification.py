@@ -6,6 +6,7 @@ import jst
 import re
 import logging
 import database
+import httpx
 from _notification_types_ import NOTIFICATION_TYPES
 
 JST = jst.get_jst()
@@ -44,7 +45,7 @@ async def handle_work_detection(bot, message, embed):
     job_info = {"name": "不明", "time": 60, "base": 0, "bonus": 0}
 
     try:
-        r = requests.get(f"https://api.takasumibot.com/v3/profile/{user.id}", timeout=10)
+        r = await fetch_user_profile(user.id)
         if r.status_code == 200:
             job_key = r.json().get("jobType", "unknown").lower()
             if job_key in JOB_MAP:
@@ -65,6 +66,11 @@ async def handle_work_detection(bot, message, embed):
     # 応答
     res_embed = discord.Embed(description=f"`/work` を検知しました。\n{cd_min}分後にこのチャンネルで通知します", color=0x00ff00)
     await message.channel.send(embed=res_embed)
+
+async def fetch_user_profile(user_id):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"https://api.takasumibot.com/v3/profile/{user_id}", timeout=10)
+        return response.json()
 
 async def handle_unemployment_detection(bot, message, user, description):
     """失業保険のメッセージから日時を抽出して予約する"""
