@@ -3,6 +3,8 @@ from discord import SyncWebhook
 from discord.ext import tasks, commands
 import importlib
 import os
+import httpx
+import asyncio
 import datetime
 import pytz
 from dotenv import load_dotenv
@@ -41,7 +43,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
     async def setup_hook(self):
         """起動時の初期化"""
         await database.init_db()
-        core_system.register_to_tree(self)
+        await core_system.register_to_tree(self)
         await self.tree.sync()
         # ループを開始
         self.check_timer_loop.start()
@@ -56,7 +58,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
     @tasks.loop(minutes=10)
     async def device_status_loop(self):
         """スマホのステータス情報チャンネルを更新"""
-        importlib.reload(device_monitor) # 修正を即時反映できるようリロード
+        await asyncio.to_thread(importlib.reload, device_monitor)  # 非同期でリロード
         await device_monitor.update_device_status(self)
 
     @tasks.loop(seconds=30)
@@ -71,14 +73,13 @@ class TakasumiAuxiliaryBot(commands.Bot):
     @tasks.loop(minutes=5)
     async def reload_core_system_loop(self):
         """core_systemのリロード"""
-        importlib.reload(core_system)
+        await asyncio.to_thread(importlib.reload, core_system)  # 非同期でリロード
 
     async def on_message(self, message):
         """メッセージ受信イベントをcore_systemへ転送"""
         if message.author == self.user:
             return
         try:
-            """importlib.reload(core_system)"""
             await core_system.process_message_event(self, message)
         except Exception as e:
             logger.error(f"Message Processing Error: {e}")
@@ -86,40 +87,33 @@ class TakasumiAuxiliaryBot(commands.Bot):
     # --- 経済システム（換金・購入承認）用の追加 ---
     async def on_raw_reaction_add(self, payload):
         """リアクション追加イベントをcore_systemへ転送"""
-        importlib.reload(core_system)
+        await asyncio.to_thread(importlib.reload, core_system)  # 非同期でリロード
         await core_system.handle_reaction_event(self, payload)
 
-logging_data = {
-    'roles': {
-        'DEBUG'   :  '<@&1461192008214249696>',
-        'INFO'    :  '<@&1461178511367602189>',
-        'WARNING' :  '<@&1461192066326597727>',
-        'ERROR'   :  '<@&1461178572164038810>',
-        'CRITICAL':  '<@&1461192196735766651>',
-    },
-    'webhooks': {
-        'ALL'     :  os.getenv('DISCORD_LOG_WEBHOOK_URL_ALL'),
-        'DEBUG'   :  os.getenv('DISCORD_LOG_WEBHOOK_URL_DEBUG'),
-        'INFO'    :  os.getenv('DISCORD_LOG_WEBHOOK_URL_INFO'),
-        'WARNING' :  os.getenv('DISCORD_LOG_WEBHOOK_URL_WARNING'),
-        'ERROR'   :  os.getenv('DISCORD_LOG_WEBHOOK_URL_ERROR'),
-        'CRITICAL':  os.getenv('DISCORD_LOG_WEBHOOK_URL_CRITICAL'),
-    }
-}
 
 class DiscordBotLogger(logging.Handler):
     def __init__(self):
         super().__init__()
-        self.webhook = {
-            'ALL'     :  SyncWebhook.from_url(logging_data['webhooks']['ALL']),
-            'DEBUG'   :  SyncWebhook.from_url(logging_data['webhooks']['DEBUG']),
-            'INFO'    :  SyncWebhook.from_url(logging_data['webhooks']['INFO']),
-            'WARNING' :  SyncWebhook.from_url(logging_data['webhooks']['WARNING']),
-            'ERROR'   :  SyncWebhook.from_url(logging_data['webhooks']['ERROR']),
-            'CRITICAL':  SyncWebhook.from_url(logging_data['webhooks']['CRITICAL']),
+        self.logging_data = {
+            'levels': ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+            'roles': {
+                'DEBUG'   :  '<@&1461192008214249696>',
+                'INFO'    :  '<@&1461178511367602189>',
+                'WARNING' :  '<@&1461192066326597727>',
+                'ERROR'   :  '<@&1461178572164038810>',
+                'CRITICAL':  '<@&1461192196735766651>',
+            },
+            'webhook': {
+                'ALL'     :  os.getenv('DISCORD_LOG_WEBHOOK_URL_ALL'),
+                'DEBUG'   :  os.getenv('DISCORD_LOG_WEBHOOK_URL_DEBUG'),
+                'INFO'    :  os.getenv('DISCORD_LOG_WEBHOOK_URL_INFO'),
+                'WARNING' :  os.getenv('DISCORD_LOG_WEBHOOK_URL_WARNING'),
+                'ERROR'   :  os.getenv('DISCORD_LOG_WEBHOOK_URL_ERROR'),
+                'CRITICAL':  os.getenv('DISCORD_LOG_WEBHOOK_URL_CRITICAL'),
+            }
         }
 
-    def emit(self, record):
+    async def emit(self, record):
         log_entry = self.format(record)
         if log_entry.startswith('【20'):
             log_entry = f"```js\n{log_entry}\n```"
@@ -130,21 +124,26 @@ class DiscordBotLogger(logging.Handler):
             else:
                 log_entry += '\n```'
         level = record.levelname
-        role_mention = logging_data.get('roles', {}).get(level, '')
+        role_mention = self.logging_data.get('roles', {}).get(level, '')
         message = f"{role_mention}\n{log_entry}" if role_mention else log_entry
 
         """Webhook にログを送信"""
         try:
-            message = message.encode('utf-8').decode('utf-8')
-            # All に送信
-            self.webhook['ALL'].send(message)
-            # レベル別に送信
-            if level in self.webhook:
-                self.webhook[level].send(message)
+            async with httpx.AsyncClient() as client:
+                # All に送信
+                await client.post(self.logging_data['webhook']['ALL'], json={"content": message})
+                # レベル別に送信
+                if level in self.logging_data['levels']:
+                    await client.post(self.logging_data['webhook'], json={"content": message})
         except Exception as e:
             print(f"[Webhook Logging Error] Failed to send log via webhook: {e}")
 
+
 bot = TakasumiAuxiliaryBot()
+
+discord_bot_logger = DiscordBotLogger()
+discord_bot_logger.setFormatter(log_format)
+logging.getLogger().addHandler(discord_bot_logger)
 
 @bot.event
 async def on_ready():
@@ -155,11 +154,6 @@ async def on_ready():
     # ログイン成功メッセージ
     now = jst.now().strftime('%Y/%m/%d %H:%M:%S')
     logger.info(f"【{now}】{bot.user.name} としてログインしました")
-
-discord_bot_logger = DiscordBotLogger()
-discord_bot_logger.setFormatter(log_format)
-logging.getLogger().addHandler(discord_bot_logger)
-
 
 @bot.event
 async def on_error(event_method, *args, **kwargs):
@@ -178,7 +172,6 @@ async def on_message_edit(before, after):
     if after.author == bot.user:
         return
     await core_system.process_message_event(bot, after)
-
 
 # --- 起動 ---
 token = os.getenv('DISCORD_TOKEN')
