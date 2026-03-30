@@ -24,7 +24,12 @@ async def update_device_status(bot):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.communicate()
+            raise
         return stdout.decode("utf-8")
 
     try:
@@ -43,7 +48,14 @@ async def update_device_status(bot):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=15)
+            if process.returncode != 0:
+                raise RuntimeError(f"top command failed: {stderr.decode('utf-8')}")
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.communicate()
+            raise
         return stdout.decode("utf-8")
 
     try:
@@ -74,7 +86,14 @@ async def update_device_status(bot):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+            if process.returncode != 0:
+                raise RuntimeError(f"free command failed: {stderr.decode('utf-8')}")
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.communicate()
+            raise
         return stdout.decode("utf-8")
 
     try:

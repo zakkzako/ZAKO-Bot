@@ -25,6 +25,8 @@ ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]
 
 logger = logging.getLogger(__name__)
 
+_reload_lock = asyncio.Lock()
+
 UNEMPLOYMENT_NOTIFY_CHANNEL: discord.TextChannel | None = None
 WORK_COOLDOWN_MINUTES = 20
 
@@ -242,11 +244,12 @@ async def handle_reaction_event(bot, payload):
 
 async def register_to_tree(bot):
     try:
-        await asyncio.to_thread(importlib.reload, general)
-        await asyncio.to_thread(importlib.reload, admin)
-        await asyncio.to_thread(importlib.reload, economy_cmds)
-        await asyncio.to_thread(importlib.reload, gambling)
-        await asyncio.to_thread(importlib.reload, notification_settings)
+        async with _reload_lock:
+            await asyncio.to_thread(importlib.reload, general)
+            await asyncio.to_thread(importlib.reload, admin)
+            await asyncio.to_thread(importlib.reload, economy_cmds)
+            await asyncio.to_thread(importlib.reload, gambling)
+            await asyncio.to_thread(importlib.reload, notification_settings)
         general.setup_general_commands(bot)
         admin.setup_admin_commands(bot)
         economy_cmds.setup_economy_commands(bot)

@@ -24,7 +24,7 @@ async def load_json(path, default):
         return default
     content = await read_file_async(path)
     try:
-        return json.load(content)
+        return json.loads(content)
     except:
         return default
 
@@ -62,7 +62,7 @@ async def check_notification(user_id):
 
     # データを渡した場合は、reminders.jsonを更新保存
     if updated:
-        await write_file_async(REMINDERS_FILE, queue)
+        await write_file_async(REMINDERS_FILE, json.dumps(queue, ensure_ascii=False, indent=4))
 
     return jsonify({
         "status": "success",

@@ -113,7 +113,7 @@ class DiscordBotLogger(logging.Handler):
             }
         }
 
-    async def emit(self, record):
+    def emit(self, record):
         log_entry = self.format(record)
         if log_entry.startswith('【20'):
             log_entry = f"```js\n{log_entry}\n```"
@@ -129,12 +129,24 @@ class DiscordBotLogger(logging.Handler):
 
         """Webhook にログを送信"""
         try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self._send_webhook(message, level))
+        except Exception as e:
+            print(f"[Webhook Logging Error] Failed to schedule webhook: {e}")
+
+    async def _send_webhook(self, message, level):
+        try:
+            webhook_config = self.logging_data.get('webhook', {})
             async with httpx.AsyncClient() as client:
-                # All に送信
-                await client.post(self.logging_data['webhook']['ALL'], json={"content": message})
+                # ALL に送信
+                all_webhook_url = webhook_config.get('ALL')
+                if all_webhook_url:
+                    await client.post(all_webhook_url, json={"content": message})
                 # レベル別に送信
-                if level in self.logging_data['levels']:
-                    await client.post(self.logging_data['webhook'], json={"content": message})
+                level_webhook_url = webhook_config.get(level)
+                if level_webhook_url:
+                    await client.post(level_webhook_url, json={"content": message})
         except Exception as e:
             print(f"[Webhook Logging Error] Failed to send log via webhook: {e}")
 

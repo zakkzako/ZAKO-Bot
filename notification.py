@@ -70,7 +70,7 @@ async def handle_work_detection(bot, message, embed):
 async def fetch_user_profile(user_id):
     async with httpx.AsyncClient() as client:
         response = await client.get(f"https://api.takasumibot.com/v3/profile/{user_id}", timeout=10)
-        return response.json()
+        return response
 
 async def handle_unemployment_detection(bot, message, user, description):
     """失業保険のメッセージから日時を抽出して予約する"""
