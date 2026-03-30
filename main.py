@@ -59,7 +59,7 @@ class TakasumiAuxiliaryBot(commands.Bot):
         importlib.reload(device_monitor) # 修正を即時反映できるようリロード
         await device_monitor.update_device_status(self)
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(minutes=1)
     async def check_timer_loop(self):
         """リマインダーチェック"""
         try:

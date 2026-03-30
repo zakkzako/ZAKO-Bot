@@ -4,6 +4,7 @@ import datetime
 import pytz
 import importlib
 import os
+import asyncio
 import notification
 import updater
 import jikoku
