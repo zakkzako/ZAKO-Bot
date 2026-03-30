@@ -66,42 +66,56 @@ async def check_reminders(bot):
         logger.error(f"Jihou Error: {e}")
 
     now = datetime.datetime.now(JST)
-    now_iso = now.isoformat()
-
-    # DBから時間が来ている（または過ぎている）リマインダーだけを取得
-    rows = await database.fetch_all("SELECT * FROM reminders WHERE target_time <= ?", (now_iso,))
     
+    # 変更点：現在時刻から「1分後」までのデータを取得する
+    target_limit = (now + datetime.timedelta(minutes=1)).isoformat()
+    # DBから時間が来ている、または「1分以内に来る」リマインダーを取得
+    rows = await database.fetch_all("SELECT * FROM reminders WHERE target_time <= ?", (target_limit,))    
     if not rows:
         return
-
-    processed_ids = []
-
     for r in rows:
-        rem_id = r['id']
-        user_id = r['user_id']
-        channel_id = r['channel_id']
-        notification_type = r['notification_type']
-        cooldown_min = r['cooldown_min']
+        rem_id = r['id']        
+        # すでに処理中のタスクならスキップ（重複チェック）
+        if rem_id in processing_reminders:
+            continue
+        # 処理中リストに追加
+        processing_reminders.add(rem_id)       
+        # バックグラウンドタスクとして非同期実行
+        # r を辞書型に変換して渡す
+        asyncio.create_task(process_single_reminder(bot, dict(r)))
 
-        # 処理対象としてIDを記録
-        processed_ids.append(rem_id)
+async def process_single_reminder(bot, reminder_data):
+    rem_id = reminder_data['id']
+    user_id = reminder_data['user_id']
+    channel_id = reminder_data['channel_id']
+    notification_type = reminder_data['notification_type']
+    cooldown_min = reminder_data['cooldown_min']
+    target_time_str = reminder_data['target_time']
+
+    try:
+        # ISOフォーマットの文字列からdatetimeオブジェクトに復元
+        target_time = datetime.datetime.fromisoformat(target_time_str)
+        
+        now = datetime.datetime.now(JST)
+        
+        # 通知までの残り秒数を計算
+        wait_time = (target_time - now).total_seconds()
+
+        # まだ時間が来ていない場合は、指定時間まで待機する
+        if wait_time > 0:
+            await asyncio.sleep(wait_time)
 
         try:
             channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
         except Exception as e:
-            if hasattr(e, 'status') and e.status == 403:
-                logger.warning(f"Channel access forbidden for channel ID {channel_id}")
-            elif hasattr(e, 'status') and e.status == 404:
-                logger.warning(f"Channel not found for channel ID {channel_id}")
+            if hasattr(e, 'status') and e.status in [403, 404]:
+                logger.warning(f"Channel access issue for channel ID {channel_id}: {e}")
             else:
                 logger.error(f"Error fetching channel ID {channel_id}: {e}")
-            continue
+            channel = None
 
         if channel and user_id:
-            if not await should_send_notification(bot, user_id, notification_type):
-                continue
-                
-            try:
+            if await should_send_notification(bot, user_id, notification_type):
                 if notification_type == NOTIFICATION_TYPES.UNEMPLOYMENT_INSURANCE:
                     if channel.guild.id == 1455450215313309763:
                         await channel.send(f"<@{user_id}> 失業保険が間もなく失効します\n<#1455515562255056948> で </pay:1132518157119135775> を実行して失業保険を購入しましょう。")
@@ -118,14 +132,17 @@ async def check_reminders(bot):
                     await channel.send(f"<@{user_id}> stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
                 else:
                     logger.warning(f"Unknown notification type: {notification_type}")
-            except Exception as e:
-                logger.error(f"Notification send error: {e}")
-                continue
+                    
+    except Exception as e:
+        logger.error(f"Error processing reminder {rem_id}: {e}")
+    finally:
+        # 通知の送信が成功しても失敗しても、処理が終わったらDBから削除する
+        await database.execute_query("DELETE FROM reminders WHERE id = ?", (rem_id,))
+        
+        # 処理中リストからも削除する
+        if rem_id in processing_reminders:
+            processing_reminders.remove(rem_id)
 
-    # 処理が終わったリマインダーを一括でDBから削除
-    if processed_ids:
-        placeholders = ','.join('?' * len(processed_ids))
-        await database.execute_query(f"DELETE FROM reminders WHERE id IN ({placeholders})", tuple(processed_ids))
 
 async def process_message_event(bot, message):
     if message.author.bot and message.embeds:
