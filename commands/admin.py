@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 import importlib
+import asyncio
 import economy
 import datetime
 import pytz
@@ -30,16 +31,16 @@ async def admin_reload(interaction: discord.Interaction):
         return
     try:
         commit_hash = await updater.get_current_version()
-        importlib.reload(core_system)
-        importlib.reload(economy)
-        core_system.register_to_tree(interaction.client)
+        await asyncio.to_thread(importlib.reload, core_system)
+        await asyncio.to_thread(importlib.reload, economy)
+        await core_system.register_to_tree(interaction.client)
         if commit_hash['local'] == commit_hash['remote']:
             await interaction.response.send_message(f"すでに最新の状態です\nコミット：`{commit_hash['remote']}`", ephemeral=True)
             return
         await updater.perform_full_update()
-        importlib.reload(core_system)
-        importlib.reload(economy)
-        core_system.register_to_tree(interaction.client)
+        await asyncio.to_thread(importlib.reload, core_system)
+        await asyncio.to_thread(importlib.reload, economy)
+        await core_system.register_to_tree(interaction.client)
         now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
         await interaction.response.send_message(f"リロード完了 ({now})\nコミット：`{commit_hash['remote']}`", ephemeral=True)
     except Exception as e:

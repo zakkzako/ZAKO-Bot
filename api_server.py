@@ -3,6 +3,7 @@ import json
 import os
 import datetime
 import pytz
+import aiofiles
 
 app = Flask(__name__)
 
@@ -10,21 +11,25 @@ app = Flask(__name__)
 REMINDERS_FILE = "reminders.json"
 JST = pytz.timezone('Asia/Tokyo')
 
-def load_json(path, default):
+async def read_file_async(path):
+    async with aiofiles.open(path, mode='r', encoding='utf-8') as f:
+        return await f.read()
+
+async def write_file_async(path, data):
+    async with aiofiles.open(path, mode='w', encoding='utf-8') as f:
+        await f.write(data)
+
+async def load_json(path, default):
     if not os.path.exists(path):
         return default
-    with open(path, "r", encoding="utf-8") as f:
-        try:
-            return json.load(f)
-        except:
-            return default
-
-def save_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+    content = await read_file_async(path)
+    try:
+        return json.loads(content)
+    except:
+        return default
 
 @app.route('/check/<int:user_id>', methods=['GET'])
-def check_notification(user_id):
+async def check_notification(user_id):
     """
     スマホアプリが30秒〜1分おきに叩くエンドポイント
     """
@@ -57,7 +62,7 @@ def check_notification(user_id):
 
     # データを渡した場合は、reminders.jsonを更新保存
     if updated:
-        save_json(REMINDERS_FILE, queue)
+        await write_file_async(REMINDERS_FILE, json.dumps(queue, ensure_ascii=False, indent=4))
 
     return jsonify({
         "status": "success",

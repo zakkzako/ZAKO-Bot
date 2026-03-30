@@ -18,7 +18,10 @@ __pycache__/
 venv/
 .nvm/
 
+
 *.json
+
+backup_json/
 
 *.db
 

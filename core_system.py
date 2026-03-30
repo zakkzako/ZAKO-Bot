@@ -3,6 +3,7 @@ from discord import app_commands
 import datetime
 import pytz
 import importlib
+import asyncio
 import os
 import asyncio
 import notification
@@ -25,6 +26,8 @@ ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]
 
 logger = logging.getLogger(__name__)
 
+_reload_lock = asyncio.Lock()
+
 UNEMPLOYMENT_NOTIFY_CHANNEL: discord.TextChannel | None = None
 WORK_COOLDOWN_MINUTES = 20
 
@@ -32,7 +35,7 @@ async def init_system(bot):
     try:
         global UNEMPLOYMENT_NOTIFY_CHANNEL
         UNEMPLOYMENT_NOTIFY_CHANNEL = bot.get_channel(1473864813506465903) or await bot.fetch_channel(1473864813506465903)
-        register_to_tree(bot)
+        await register_to_tree(bot)
         logger.info("System initialized")
     except Exception as e:
         logger.error(f"Initialization Error: {e}")
@@ -159,17 +162,17 @@ async def process_message_event(bot, message):
             desc = embed.description or ""
             fields_text = "".join([f.value for f in embed.fields])
             if "給料:" in desc or "給料:" in fields_text:
-                importlib.reload(notification)
+                await asyncio.to_thread(importlib.reload, notification)
                 await notification.handle_work_detection(bot, message, embed)
             elif "失業保険" in desc and "購入しました" in desc:
                 user = None
                 if message.interaction_metadata: user = message.interaction_metadata.user
                 elif message.mentions: user = message.mentions[0]
                 if user:
-                    importlib.reload(notification)
+                    await asyncio.to_thread(importlib.reload, notification)
                     await notification.handle_unemployment_detection(bot, message, user, desc)
             elif "から盗めませんでした" in desc or "から盗みました" in desc:
-                importlib.reload(notification)
+                await asyncio.to_thread(importlib.reload, notification)
                 await notification.handle_steal_detection(bot, message)
 
 async def handle_economy_application_exchange_ec(bot, interaction, approved):
@@ -178,7 +181,7 @@ async def handle_economy_application_exchange_ec(bot, interaction, approved):
 
     if approved == True:
         try:
-            importlib.reload(economy)
+            await asyncio.to_thread(importlib.reload, economy)
             embed = interaction.message.embeds[0]
             uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             user = bot.get_user(uid)
@@ -207,7 +210,7 @@ async def handle_economy_application_exchange_tc(bot, interaction, approved):
 
     if approved == True:
         try:
-            importlib.reload(economy)
+            await asyncio.to_thread(importlib.reload, economy)
             embed = interaction.message.embeds[0]
             uid = int((embed.fields[0].value).replace("<@", "").replace(">", "").replace("!", ""))
             user = bot.get_user(uid)
@@ -241,7 +244,7 @@ async def handle_reaction_event(bot, payload):
     embed = message.embeds[0]
 
     try:
-        importlib.reload(economy)
+        await asyncio.to_thread(importlib.reload, economy)
         user_mention = embed.fields[0].value
         user_id = int(user_mention.replace("<@", "").replace(">", "").replace("!", ""))
         amount = float(embed.fields[1].value.split(" ")[0])
@@ -257,13 +260,14 @@ async def handle_reaction_event(bot, payload):
     except Exception as e:
         logger.error(f"Reaction Process Error: {e}")
 
-def register_to_tree(bot):
+async def register_to_tree(bot):
     try:
-        importlib.reload(general)
-        importlib.reload(admin)
-        importlib.reload(economy_cmds) 
-        importlib.reload(gambling)
-        importlib.reload(notification_settings) 
+        async with _reload_lock:
+            await asyncio.to_thread(importlib.reload, general)
+            await asyncio.to_thread(importlib.reload, admin)
+            await asyncio.to_thread(importlib.reload, economy_cmds)
+            await asyncio.to_thread(importlib.reload, gambling)
+            await asyncio.to_thread(importlib.reload, notification_settings)
         general.setup_general_commands(bot)
         admin.setup_admin_commands(bot)
         economy_cmds.setup_economy_commands(bot)

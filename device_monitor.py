@@ -18,8 +18,22 @@ async def update_device_status(bot):
     time_str = datetime.now(jst_time).strftime('%H時%M分')
 
     # 1. バッテリー (全角％)
+    async def get_battery_status():
+        process = await asyncio.create_subprocess_exec(
+            "termux-battery-status",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.communicate()
+            raise
+        return stdout.decode("utf-8")
+
     try:
-        res = subprocess.check_output(["termux-battery-status"], timeout=5).decode("utf-8")
+        res = await get_battery_status()
         data = json.loads(res)
         pct = data.get("percentage", 0)
         st_jp = {"charging": "充電中", "discharging": "放電中", "full": "満充電"}.get(data.get("status", "").lower(), "待機")
@@ -28,9 +42,25 @@ async def update_device_status(bot):
         logger.error(f"Battery Error: {e}")
 
     # 2. CPU (0％回避・全角％)
+    async def get_cpu_status():
+        process = await asyncio.create_subprocess_shell(
+            "top -n 2 -d 3 -b",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=15)
+            if process.returncode != 0:
+                raise RuntimeError(f"top command failed: {stderr.decode('utf-8')}")
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.communicate()
+            raise
+        return stdout.decode("utf-8")
+
     try:
         # 3秒間の平均を取得
-        cpu_res = subprocess.check_output("top -n 2 -d 3 -b", shell=True).decode("utf-8")
+        cpu_res = await get_cpu_status()
         parts = cpu_res.split("Tasks:")
         last_top = parts[-1] if len(parts) >= 2 else cpu_res
 
@@ -50,8 +80,24 @@ async def update_device_status(bot):
         logger.error(f"CPU Error: {e}")
 
     # 3. RAM (MB表示から％表示へ変更)
+    async def get_ram_status():
+        process = await asyncio.create_subprocess_shell(
+            "free -m",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+            if process.returncode != 0:
+                raise RuntimeError(f"free command failed: {stderr.decode('utf-8')}")
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.communicate()
+            raise
+        return stdout.decode("utf-8")
+
     try:
-        ram_res = subprocess.check_output("free -m", shell=True).decode("utf-8")
+        ram_res = await get_ram_status()
         # free -m の出力を解析
         lines = ram_res.strip().split('\n')
         for line in lines:
