@@ -10,7 +10,7 @@ import jst
 import core_system
 import updater
 import logging
-import database # これを追加
+import database 
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +116,69 @@ async def money_set(interaction: discord.Interaction, user: discord.Member, amou
     await economy.set_money(user.id, amount)
     await interaction.response.send_message(f"{user.mention} の金額を {amount} に設定しました。", ephemeral=True)
 
+BACKUP_CHANNEL_ID = 1488536734076764250
+
+admin_db_group = app_commands.Group(name="db", description="［ Bot 管理者専用 ］ データベース同期コマンド")
+admin_group.add_command(admin_db_group)
+
+@admin_db_group.command(name="upload", description="［ Bot 管理者専用 ］ 現在のDBをDiscordにアップロード(退避)します")
+async def db_upload(interaction: discord.Interaction):
+    if not is_admin(interaction.user.id):
+        await interaction.response.send_message("権限がありません", ephemeral=True)
+        return
+
+    # ファイルの送信には少し時間がかかることがあるため、deferで待機状態にします
+    await interaction.response.defer(ephemeral=True) 
+    
+    try:
+        channel = interaction.client.get_channel(BACKUP_CHANNEL_ID)
+        if not channel:
+            await interaction.followup.send("❌ バックアップ用チャンネルが見つかりません。設定IDを確認してください。")
+            return
+
+        # DBファイルを送信
+        file = discord.File(database.DB_FILE)
+        now_str = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
+        
+        await channel.send(content=f"🔄 DB Backup: {now_str} (Uploaded by {interaction.user.name})", file=file)
+        await interaction.followup.send("✅ 現在のデータベースのアップロード（退避）が完了しました！")
+        
+    except Exception as e:
+        logger.error(f"DB Upload Error: {e}")
+        await interaction.followup.send(f"❌ エラーが発生しました: {e}")
+
+
+@admin_db_group.command(name="download", description="［ Bot 管理者専用 ］ Discordから最新のDBをダウンロード(復元)します")
+async def db_download(interaction: discord.Interaction):
+    if not is_admin(interaction.user.id):
+        await interaction.response.send_message("権限がありません", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        channel = interaction.client.get_channel(BACKUP_CHANNEL_ID)
+        if not channel:
+            await interaction.followup.send("❌ バックアップ用チャンネルが見つかりません。")
+            return
+
+        # チャンネルの履歴から最新のメッセージを1件だけ取得
+        messages = [msg async for msg in channel.history(limit=1)]
+        
+        # メッセージが存在しない、または添付ファイルがない場合のエラーハンドリング
+        if not messages or not messages[0].attachments:
+            await interaction.followup.send("❌ バックアップデータ（添付ファイル）が見つかりません。")
+            return
+
+        # 最新の添付ファイルをダウンロードして、ローカルのDBファイルに上書き保存
+        attachment = messages[0].attachments[0]
+        await attachment.save(database.DB_FILE)
+
+        await interaction.followup.send(f"✅ 最新のDBをダウンロード（復元）しました！\nファイル日時: {messages[0].created_at.astimezone(JST).strftime('%Y/%m/%d %H:%M:%S')}")
+        
+    except Exception as e:
+        logger.error(f"DB Download Error: {e}")
+        await interaction.followup.send(f"❌ エラーが発生しました: {e}")
+
 def setup_admin_commands(bot):
-    existing = [cmd.name for cmd in bot.tree.get_commands()]
-    cmds = [admin_group]
-    for cmd in cmds:
-        if cmd.name not in existing:
-            bot.tree.add_command(cmd)
+    bot.tree.add_command(admin_group, override=True)
