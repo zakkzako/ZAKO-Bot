@@ -19,7 +19,7 @@ venv/
 .nvm/
 
 
-*.json
+# *.json
 
 backup_json/
 
