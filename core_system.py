@@ -61,6 +61,8 @@ async def should_send_notification(bot, user_id: int, notification_type: str) ->
         logger.error(f"Error loading notification settings for user {user_id}: {e}")
         return True
 
+processing_reminders = set()
+
 async def check_reminders(bot):
     await updater.perform_full_update()
     try:

@@ -114,6 +114,8 @@ class DiscordBotLogger(logging.Handler):
         }
 
     def emit(self, record):
+        if record.name.startswith(('httpx', 'httpcore', 'requests', 'urllib3', 'discord.http', 'discord.gateway')):
+            return
         log_entry = self.format(record)
         if log_entry.startswith('【20'):
             log_entry = f"```js\n{log_entry}\n```"
