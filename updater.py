@@ -21,15 +21,16 @@ GITHUB_BRANCH = "main" # もしデフォルトブランチがmasterの場合は 
 
 # パブリックリポジトリなのでトークンは不要です
 GITHUB_TOKEN = None
+# トークン設定した方がレートリミット緩くなるから設定してちょ by Yamatomato
 
 # 上書き・削除されたくないファイルやディレクトリのリスト
 # （環境変数ファイルや、動的に書き換わるDBファイルなどは必ず入れてください）
 EXCLUDE_LIST = [
-    ".git", 
-    "__pycache__", 
-    "venv", 
-    ".env", 
-    ".local_version", 
+    ".git",
+    "__pycache__",
+    "venv",
+    ".env",
+    ".local_version",
     "bot_data.db",
     ".gitignore",
     "requirements.txt"
@@ -40,9 +41,12 @@ EXCLUDE_LIST = [
 async def perform_full_update():
     """GitHubからZIPをダウンロードし、差分ファイルのみ更新する（擬似pull）"""
     log_time = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
-    
+
     # 1. 更新の必要があるかチェック
     versions = await get_current_version()
+    if versions["remote"] == "unknown":
+        logger.warning(f"[{log_time}] [Updater] リモートバージョンの取得に失敗しました。更新をスキップします。")
+        return False
     if versions["local"] == versions["remote"]:
         # 既に最新の場合は何もしない
         return False
@@ -67,28 +71,28 @@ async def perform_full_update():
         with zipfile.ZipFile(io.BytesIO(zip_data)) as z:
             with tempfile.TemporaryDirectory() as temp_dir:
                 z.extractall(temp_dir)
-                
+
                 # GitHubのZIPはルートに「リポジトリ名-ブランチ名」のフォルダができるため、その中身を起点とする
                 extracted_root = os.path.join(temp_dir, os.listdir(temp_dir)[0])
                 updated_files_count = 0
-                
+
                 # 4. ファイルの差分チェックと上書きコピー
                 for root, dirs, files in os.walk(extracted_root):
                     # 除外対象のディレクトリを探索から外す
                     dirs[:] = [d for d in dirs if d not in EXCLUDE_LIST]
-                    
+
                     for file in files:
                         if file in EXCLUDE_LIST:
                             continue
-                            
+
                         ext_file_path = os.path.join(root, file)
                         # カレントディレクトリからの相対パスを計算
                         rel_path = os.path.relpath(ext_file_path, extracted_root)
                         local_file_path = os.path.abspath(rel_path)
-                        
+
                         # ローカルにディレクトリが存在しない場合は作成
                         os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
-                        
+
                         needs_update = False
                         if not os.path.exists(local_file_path):
                             # ローカルにファイルがない場合は新規作成
@@ -98,7 +102,7 @@ async def perform_full_update():
                             with open(ext_file_path, "rb") as ef, open(local_file_path, "rb") as lf:
                                 if ef.read() != lf.read():
                                     needs_update = True
-                                    
+
                         if needs_update:
                             shutil.copy2(ext_file_path, local_file_path)
                             logger.info(f"[Updater] Updated: {rel_path}")
@@ -119,24 +123,26 @@ async def perform_full_update():
 async def get_current_version():
     """GitHub APIを使用してローカルとリモートのコミットハッシュを取得して辞書で返す"""
     versions = {"local": "unknown", "remote": "unknown"}
-    
+
     # ローカルのバージョンは Git の代わりにファイル (.local_version) から読み取る
     if os.path.exists(".local_version"):
         with open(".local_version", "r", encoding="utf-8") as f:
             versions["local"] = f.read().strip()
-            
+
     api_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/commits/{GITHUB_BRANCH}"
     headers = {"Accept": "application/vnd.github.v3+json"}
     if GITHUB_TOKEN:
         headers["Authorization"] = f"token {GITHUB_TOKEN}"
-        
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url, headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     versions["remote"] = data["sha"]
+                else:
+                    logger.error(f"[Updater] APIリクエスト失敗: HTTP {resp.status}")
     except Exception as e:
         logger.error(f"[Updater] API経由でのバージョン取得エラー: {e}")
-        
+
     return versions
