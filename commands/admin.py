@@ -10,7 +10,7 @@ import jst
 import core_system
 import updater
 import logging
-import database 
+import database
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +19,12 @@ JST = jst.get_jst()
 admin_ids_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェックの一時的ハードコーディング
 
-admin_group = app_commands.Group(name="admin", description="［ Bot 管理者専用 ］ 管理者用コマンド")
-
 def is_admin(user_id):
     return user_id in ADMIN_IDS if ADMIN_IDS else False
+
+ADMIN_GUILD_ID = 1455450215313309763
+
+admin_group = app_commands.Group(name="admin", description="［ Bot 管理者専用 ］ 管理者用コマンド", guild_ids=[ADMIN_GUILD_ID])
 
 @admin_group.command(name="reload", description="［ Bot 管理者専用 ］ 最新ファイルを反映します")
 async def admin_reload(interaction: discord.Interaction):
@@ -128,10 +130,10 @@ async def db_upload(interaction: discord.Interaction):
         return
 
     # ファイルの送信には少し時間がかかることがあるため、deferで待機状態にします
-    await interaction.response.defer(ephemeral=True) 
-    
+    await interaction.response.defer(ephemeral=True)
+
     try:
-        channel = interaction.client.get_channel(BACKUP_CHANNEL_ID)
+        channel = interaction.client.get_channel(BACKUP_CHANNEL_ID) or await interaction.client.fetch_channel(BACKUP_CHANNEL_ID)
         if not channel:
             await interaction.followup.send("❌ バックアップ用チャンネルが見つかりません。設定IDを確認してください。")
             return
@@ -139,10 +141,10 @@ async def db_upload(interaction: discord.Interaction):
         # DBファイルを送信
         file = discord.File(database.DB_FILE)
         now_str = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
-        
+
         await channel.send(content=f"🔄 DB Backup: {now_str} (Uploaded by {interaction.user.name})", file=file)
         await interaction.followup.send("✅ 現在のデータベースのアップロード（退避）が完了しました！")
-        
+
     except Exception as e:
         logger.error(f"DB Upload Error: {e}")
         await interaction.followup.send(f"❌ エラーが発生しました: {e}")
@@ -155,16 +157,16 @@ async def db_download(interaction: discord.Interaction):
         return
 
     await interaction.response.defer(ephemeral=True)
-    
+
     try:
-        channel = interaction.client.get_channel(BACKUP_CHANNEL_ID)
+        channel = interaction.client.get_channel(BACKUP_CHANNEL_ID) or await interaction.client.fetch_channel(BACKUP_CHANNEL_ID)
         if not channel:
             await interaction.followup.send("❌ バックアップ用チャンネルが見つかりません。")
             return
 
         # チャンネルの履歴から最新のメッセージを1件だけ取得
         messages = [msg async for msg in channel.history(limit=1)]
-        
+
         # メッセージが存在しない、または添付ファイルがない場合のエラーハンドリング
         if not messages or not messages[0].attachments:
             await interaction.followup.send("❌ バックアップデータ（添付ファイル）が見つかりません。")
@@ -175,10 +177,10 @@ async def db_download(interaction: discord.Interaction):
         await attachment.save(database.DB_FILE)
 
         await interaction.followup.send(f"✅ 最新のDBをダウンロード（復元）しました！\nファイル日時: {messages[0].created_at.astimezone(JST).strftime('%Y/%m/%d %H:%M:%S')}")
-        
+
     except Exception as e:
         logger.error(f"DB Download Error: {e}")
         await interaction.followup.send(f"❌ エラーが発生しました: {e}")
 
 def setup_admin_commands(bot):
-    bot.tree.add_command(admin_group, override=True)
+    bot.tree.add_command(admin_group, override=True, guild=discord.Object(id=ADMIN_GUILD_ID))
