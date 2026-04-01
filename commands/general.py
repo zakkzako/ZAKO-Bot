@@ -21,7 +21,7 @@ async def ping(interaction: discord.Interaction):
         embed = discord.Embed(title="Pong!", color=0x00ff00)
         embed.add_field(name="Raw Latency", value=f"{raw_ping:.2f}ms")
         embed.add_field(name="Message Latency", value=f"{message_latency:.2f}ms")
-        await interaction.edit_original_response(embed=embed)
+        await interaction.edit_original_response(content=None, embed=embed)
     except Exception as e:
         await interaction.response.send_message(f"エラーが発生しました: {e}")
         logging.error(f"Error in ping command: {e}")
