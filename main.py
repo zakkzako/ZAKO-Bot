@@ -48,12 +48,12 @@ class TakasumiAuxiliaryBot(commands.Bot):
         # ループを開始
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
-        try:
-            await device_monitor.update_device_status(self)
-        except Exception as e:
-            logger.error(f"Initial Status Update Error: {e}")
-        self.device_status_loop.start() # 1回目完了後に定期実行を開始
-
+        if "com.termux" in os.environ.get("PREFIX", ""):
+            try:
+                await device_monitor.update_device_status(self)
+            except Exception as e:
+                logger.error(f"Initial Status Update Error: {e}")
+            self.device_status_loop.start() # 1回目完了後に定期実行を開始
 
     @tasks.loop(minutes=10)
     async def device_status_loop(self):
@@ -68,7 +68,6 @@ class TakasumiAuxiliaryBot(commands.Bot):
             await core_system.check_reminders(self)
         except Exception as e:
             logger.error(f"Loop Error: {e}")
-
 
     @tasks.loop(minutes=5)
     async def reload_core_system_loop(self):
