@@ -228,4 +228,6 @@ async def db_download(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ エラーが発生しました: {e}")
 
 def setup_admin_commands(bot):
-    bot.tree.add_command(admin_group, override=True, guild=discord.Object(id=ADMIN_GUILD_ID))
+    ADMIN_GUILD = discord.Object(id=ADMIN_GUILD_ID)
+    bot.tree.add_command(admin_group, override=True, guild=ADMIN_GUILD)
+    bot.tree.sync(guild=ADMIN_GUILD)
