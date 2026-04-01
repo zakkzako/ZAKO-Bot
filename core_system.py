@@ -71,7 +71,7 @@ async def check_reminders(bot):
         logger.error(f"Jihou Error: {e}")
 
     now = datetime.datetime.now(JST)
-    
+
     # 変更点：現在時刻から「1分後」までのデータを取得する
     target_limit = (now + datetime.timedelta(minutes=1)).isoformat()
     # DBから時間が来ている、または「1分以内に来る」リマインダーを取得
@@ -79,12 +79,12 @@ async def check_reminders(bot):
     if not rows:
         return
     for r in rows:
-        rem_id = r['id']        
+        rem_id = r['id']
         # すでに処理中のタスクならスキップ（重複チェック）
         if rem_id in processing_reminders:
             continue
         # 処理中リストに追加
-        processing_reminders.add(rem_id)       
+        processing_reminders.add(rem_id)
         # バックグラウンドタスクとして非同期実行
         # r を辞書型に変換して渡す
         asyncio.create_task(process_single_reminder(bot, dict(r)))
@@ -100,9 +100,9 @@ async def process_single_reminder(bot, reminder_data):
     try:
         # ISOフォーマットの文字列からdatetimeオブジェクトに復元
         target_time = datetime.datetime.fromisoformat(target_time_str)
-        
+
         now = datetime.datetime.now(JST)
-        
+
         # 通知までの残り秒数を計算
         wait_time = (target_time - now).total_seconds()
 
@@ -132,18 +132,18 @@ async def process_single_reminder(bot, reminder_data):
 
                 elif notification_type == NOTIFICATION_TYPES.EXTERNAL_WORK:
                     await channel.send(f"<@{user_id}> workから{cooldown_min}分が経過しました。\n</work:1132868147519692871> が再度実行できます")
-                
+
                 elif notification_type == NOTIFICATION_TYPES.STEAL:
                     await channel.send(f"<@{user_id}> stealから2時間が経過しました。\n</steal:1436546809894932584> が再度実行できます")
                 else:
                     logger.warning(f"Unknown notification type: {notification_type}")
-                    
+
     except Exception as e:
         logger.error(f"Error processing reminder {rem_id}: {e}")
     finally:
         # 通知の送信が成功しても失敗しても、処理が終わったらDBから削除する
         await database.execute_query("DELETE FROM reminders WHERE id = ?", (rem_id,))
-        
+
         # 処理中リストからも削除する
         if rem_id in processing_reminders:
             processing_reminders.remove(rem_id)

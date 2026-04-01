@@ -6,6 +6,7 @@ import economy
 import datetime
 import pytz
 import os
+import sys
 import jst
 import core_system
 import updater
@@ -15,6 +16,24 @@ import database
 logger = logging.getLogger(__name__)
 
 JST = jst.get_jst()
+
+class RestartConfirmationView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=30)  # 30秒でタイムアウト
+
+    @discord.ui.button(label="続行", style=discord.ButtonStyle.red, custom_id="admin_restart_continue")
+    async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("再起動を開始しました\n-# このプロセスは終了しますが、ホスト環境によっては自動で再起動されない場合があります。その場合は手動で再起動してください。", ephemeral=True)
+        try:
+            await interaction.client.close()
+        except Exception as e:
+            logger.error(f"Error during bot shutdown: {e}")
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+    @discord.ui.button(label="キャンセル", style=discord.ButtonStyle.gray, custom_id="admin_restart_cancel")
+    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.edit_original_response(content="再起動がキャンセルされました", view=None)
+        self.stop()  # ビューを停止してボタンを無効化
 
 admin_ids_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェックの一時的ハードコーディング
@@ -29,7 +48,7 @@ admin_group = app_commands.Group(name="admin", description="［ Bot 管理者専
 @admin_group.command(name="reload", description="［ Bot 管理者専用 ］ 最新ファイルを反映します")
 async def admin_reload(interaction: discord.Interaction):
     if not is_admin(interaction.user.id):
-        await interaction.response.send_message("このコマンドを実行するための権限がありません", ephemeral=True)
+        await interaction.response.send_message("権限がありません", ephemeral=True)
         return
     try:
         commit_hash = await updater.get_current_version()
@@ -48,6 +67,32 @@ async def admin_reload(interaction: discord.Interaction):
     except Exception as e:
         await interaction.response.send_message(f"エラーが発生しました: {e}", ephemeral=True)
         logger.error(f"Error during admin reload: {e}")
+
+@admin_group.command(name="restart", description="［ Bot 管理者専用 ］ Botを再起動します")
+async def admin_restart(interaction: discord.Interaction):
+    if not is_admin(interaction.user.id):
+        await interaction.response.send_message("権限がありません", ephemeral=True)
+        return
+    try:
+        await interaction.response.send_message("本当に再起動しますか？", view=RestartConfirmationView(), ephemeral=True)
+    except Exception as e:
+        if interaction.response.is_done():
+            await interaction.edit_original_response(content=f"エラーが発生しました: {e}")
+        else:
+            await interaction.response.send_message(f"エラーが発生しました: {e}", ephemeral=True)
+        logger.error(f"Error during admin restart: {e}")
+
+@admin_group.command(name="sync", description="［ Bot 管理者専用 ］ コマンドツリーを同期します")
+async def admin_sync(interaction: discord.Interaction):
+    if not is_admin(interaction.user.id):
+        await interaction.response.send_message("権限がありません", ephemeral=True)
+        return
+    try:
+        await core_system.register_to_tree(interaction.client)
+        await interaction.response.send_message("コマンドツリーの同期が完了しました", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"エラーが発生しました: {e}", ephemeral=True)
+        logger.error(f"Error during admin sync: {e}")
 
 @admin_group.command(name="time-signal", description="［ Bot 管理者専用 ］ 時報チャンネルを設定します")
 async def admin_jikoku(interaction: discord.Interaction):
