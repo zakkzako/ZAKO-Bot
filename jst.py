@@ -16,5 +16,4 @@ def now():
     Returns:
         datetime: 現在のJST日時
     """
-    jst = get_jst()
-    return pytz.utc.localize(pytz.datetime.datetime.utcnow()).astimezone(jst)
+    return pytz.utc.localize(pytz.datetime.datetime.utcnow()).astimezone(get_jst())

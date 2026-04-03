@@ -4,36 +4,15 @@ import importlib
 import asyncio
 import economy
 import datetime
-import pytz
 import os
-import sys
 import jst
 import core_system
 import updater
 import logging
 import database
+from views import RestartConfirmation as RestartConfirmationView
 
 logger = logging.getLogger(__name__)
-
-JST = jst.get_jst()
-
-class RestartConfirmationView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=30)  # 30秒でタイムアウト
-
-    @discord.ui.button(label="続行", style=discord.ButtonStyle.red, custom_id="admin_restart_continue")
-    async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("再起動を開始しました\n-# このプロセスは終了しますが、ホスト環境によっては自動で再起動されない場合があります。その場合は手動で再起動してください。", ephemeral=True)
-        try:
-            await interaction.client.close()
-        except Exception as e:
-            logger.error(f"Error during bot shutdown: {e}")
-        os.execv(sys.executable, [sys.executable] + sys.argv)
-
-    @discord.ui.button(label="キャンセル", style=discord.ButtonStyle.gray, custom_id="admin_restart_cancel")
-    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.edit_original_response(content="再起動がキャンセルされました", view=None)
-        self.stop()  # ビューを停止してボタンを無効化
 
 admin_ids_env = os.getenv('ADMIN_ID')
 ADMIN_IDS = [ 1158268839721717781, 1160453651660288041 ]  # 管理者チェックの一時的ハードコーディング
@@ -62,7 +41,7 @@ async def admin_reload(interaction: discord.Interaction):
         await asyncio.to_thread(importlib.reload, core_system)
         await asyncio.to_thread(importlib.reload, economy)
         await core_system.register_to_tree(interaction.client)
-        now = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
+        now = jst.now().strftime('%Y/%m/%d %H:%M:%S')
         await interaction.response.send_message(f"リロード完了 ({now})\nコミット：`{commit_hash['remote']}`", ephemeral=True)
     except Exception as e:
         await interaction.response.send_message(f"エラーが発生しました: {e}", ephemeral=True)
@@ -154,12 +133,10 @@ async def money_set(interaction: discord.Interaction, user: discord.Member, amou
     if not is_admin(interaction.user.id):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
-    # await を追加
     exists = await economy.user_exists(user.id)
     if not exists:
         await interaction.response.send_message("ユーザーが見つかりません", ephemeral=True)
         return
-    # await を追加
     await economy.set_money(user.id, amount)
     await interaction.response.send_message(f"{user.mention} の金額を {amount} に設定しました。", ephemeral=True)
 
@@ -185,7 +162,7 @@ async def db_upload(interaction: discord.Interaction):
 
         # DBファイルを送信
         file = discord.File(database.DB_FILE)
-        now_str = datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')
+        now_str = jst.now().strftime('%Y/%m/%d %H:%M:%S')
 
         await channel.send(content=f"🔄 DB Backup: {now_str} (Uploaded by {interaction.user.name})", file=file)
         await interaction.followup.send("✅ 現在のデータベースのアップロード（退避）が完了しました！")
@@ -193,7 +170,6 @@ async def db_upload(interaction: discord.Interaction):
     except Exception as e:
         logger.error(f"DB Upload Error: {e}")
         await interaction.followup.send(f"❌ エラーが発生しました: {e}")
-
 
 @admin_db_group.command(name="download", description="［ Bot 管理者専用 ］ Discordから最新のDBをダウンロード(復元)します")
 async def db_download(interaction: discord.Interaction):
@@ -221,7 +197,7 @@ async def db_download(interaction: discord.Interaction):
         attachment = messages[0].attachments[0]
         await attachment.save(database.DB_FILE)
 
-        await interaction.followup.send(f"✅ 最新のDBをダウンロード（復元）しました！\nファイル日時: {messages[0].created_at.astimezone(JST).strftime('%Y/%m/%d %H:%M:%S')}")
+        await interaction.followup.send(f"✅ 最新のDBをダウンロード（復元）しました！\nファイル日時: {messages[0].created_at.astimezone(jst.get_jst()).strftime('%Y/%m/%d %H:%M:%S')}")
 
     except Exception as e:
         logger.error(f"DB Download Error: {e}")
