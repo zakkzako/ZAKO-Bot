@@ -53,7 +53,8 @@ async def admin_restart(interaction: discord.Interaction):
         await interaction.response.send_message("権限がありません", ephemeral=True)
         return
     try:
-        await interaction.response.send_message("本当に再起動しますか？", view=RestartConfirmationView(), ephemeral=True)
+        view = RestartConfirmationView()
+        view.message = await interaction.response.send_message("本当に再起動しますか？", view=view, ephemeral=True)
     except Exception as e:
         if interaction.response.is_done():
             await interaction.edit_original_response(content=f"エラーが発生しました: {e}")
