@@ -36,9 +36,6 @@ async def _schedule_work_notification(user_id: int, channel_id: int, cooldown_mi
         logger.error(f"Failed to schedule work notification for user {user_id}: {e}")
 
 
-# =========================
-# money
-# =========================
 @app_commands.command(name="money", description="所持ECと TakasumiBOT コイン 換算額を確認します")
 async def money(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -64,9 +61,6 @@ async def money(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-# =========================
-# rate
-# =========================
 @app_commands.command(name="rate", description="現在の1ECあたりの価値を確認します")
 async def rate(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -75,9 +69,6 @@ async def rate(interaction: discord.Interaction):
     await interaction.followup.send(f"📈 現在の換金レート: **1 EC = {r:.4f} コイン**")
 
 
-# =========================
-# economy stats
-# =========================
 @app_commands.command(name="economy", description="経済システムの統計情報を確認します")
 async def economy_stats(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -92,9 +83,6 @@ async def economy_stats(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-# =========================
-# work
-# =========================
 @app_commands.command(name="ec_work", description="ECを獲得します（45分に1回）")
 async def ec_work(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -118,9 +106,6 @@ async def ec_work(interaction: discord.Interaction):
         )
 
 
-# =========================
-# exchange
-# =========================
 @app_commands.command(name="exchange", description="ECを換金申請します（1日2万Moneyまで）")
 async def exchange(interaction: discord.Interaction, amount: float):
     await interaction.response.defer()
@@ -161,9 +146,6 @@ async def exchange(interaction: discord.Interaction, amount: float):
         await interaction.followup.send("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
 
 
-# =========================
-# buy ec
-# =========================
 @app_commands.command(name="buy_ec", description="Takasumi moneyでECを購入申請します（手数料5%）")
 async def buy_ec(interaction: discord.Interaction, amount: float):
     await interaction.response.defer()
@@ -203,9 +185,6 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
     await interaction.followup.send(embed=embed)
 
 
-# =========================
-# setup
-# =========================
 def setup_economy_commands(bot):
     cmds = [money, rate, ec_work, economy_stats, exchange, buy_ec]
     for c in cmds:
