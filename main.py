@@ -6,11 +6,12 @@ import httpx
 import asyncio
 from dotenv import load_dotenv
 import core_system
+import economy
 import jst
 import logging
 import views.EconomyApplication as EconomyApplicationViews
 import device_monitor
-import database
+import database as db
 
 
 load_dotenv()
@@ -39,10 +40,11 @@ class TakasumiAuxiliaryBot(commands.Bot):
 
     async def setup_hook(self):
         """起動時の初期化"""
-        await database.init_db()
+        await db.init_db()
         await core_system.register_to_tree(self)
         await self.tree.sync()
         # ループを開始
+        self.update_rate.start()
         self.check_timer_loop.start()
         self.reload_core_system_loop.start()
         if "com.termux" in os.environ.get("PREFIX", ""):
@@ -70,6 +72,12 @@ class TakasumiAuxiliaryBot(commands.Bot):
     async def reload_core_system_loop(self):
         """core_systemのリロード"""
         await asyncio.to_thread(importlib.reload, core_system)  # 非同期でリロード
+
+    @tasks.loop(minutes=5)
+    async def update_rate(self):
+        """レートの更新"""
+        rate = await economy.get_current_rate()
+        await db.execute_query("UPDATE system_config SET value = ? WHERE key = 'rate'", (rate,))
 
     async def on_message(self, message):
         """メッセージ受信イベントをcore_systemへ転送"""

@@ -10,7 +10,6 @@ async def init_db():
     try:
         async with aiosqlite.connect(DB_FILE) as db:
             # 1. ユーザーの経済データ (users.jsonの代わり)
-            # user_id はJSONでは文字列でしたが、SQLではINTEGER（整数）として扱います
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     user_id INTEGER PRIMARY KEY,
@@ -20,7 +19,6 @@ async def init_db():
                     last_work TEXT DEFAULT ''
                 )
             """)
-
 
             # 2. ブラックジャックの戦績データ (blackjack_data.jsonの代わり)
             await db.execute("""
@@ -46,7 +44,6 @@ async def init_db():
             """)
 
             # 4. システム設定や全体データ (economy_data.json, config.jsonの代わり)
-            # 柔軟に保存できるよう Key-Value 型にしています
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS system_config (
                     key TEXT PRIMARY KEY,
@@ -55,7 +52,6 @@ async def init_db():
             """)
 
             # 5. 通知設定データ (notification_settings.jsonの代わり)
-            # SQLiteにはBoolean(True/False)専用の型がないので、INTEGER(1=True, 0=False)で代用します
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS notification_settings (
                     user_id INTEGER PRIMARY KEY,
@@ -66,11 +62,14 @@ async def init_db():
                 )
             """)
 
-
             # 初期データが必要なもの（総発行ECの初期値など）のセットアップ
             await db.execute("""
                 INSERT OR IGNORE INTO system_config (key, value)
                 VALUES ('total_supply', '10000000.0')
+            """)
+            await db.execute("""
+                INSERT OR IGNORE INTO system_config (key, value)
+                VALUES ('rate', '')
             """)
 
 
@@ -78,6 +77,7 @@ async def init_db():
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
+
 
 # --- 共通で使える便利なDB操作関数（今後の実装を楽にするため） ---
 
