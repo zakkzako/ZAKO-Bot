@@ -76,7 +76,8 @@ class TakasumiAuxiliaryBot(commands.Bot):
     @tasks.loop(minutes=5)
     async def update_rate(self):
         """レートの更新"""
-        rate = await economy.get_current_rate()
+        # update loop should force a fresh calculation
+        rate = await economy.get_current_rate(force_refresh=True)
         await db.execute_query("UPDATE system_config SET value = ? WHERE key = 'rate'", (rate,))
 
     async def on_message(self, message):

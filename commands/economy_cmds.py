@@ -46,7 +46,11 @@ async def money(interaction: discord.Interaction):
     )
     balance = row['balance'] if row else 0.0
 
-    rate = await economy.get_current_rate()
+    cached_rate = await economy.get_cached_rate()
+    if cached_rate is not None:
+        rate = cached_rate
+    else:
+        rate = await economy.get_current_rate()
 
     embed = discord.Embed(title="あなたの所持金", color=0x00ff00)
     embed.add_field(name="所持EC", value=f"{balance:.2f} EC", inline=True)
@@ -65,7 +69,11 @@ async def money(interaction: discord.Interaction):
 async def rate(interaction: discord.Interaction):
     await interaction.response.defer()
 
-    r = await economy.get_current_rate()
+    cached_rate = await economy.get_cached_rate()
+    if cached_rate is not None:
+        r = cached_rate
+    else:
+        r = await economy.get_current_rate()
     await interaction.followup.send(f"📈 現在の換金レート: **1 EC = {r:.4f} コイン**")
 
 
@@ -74,7 +82,11 @@ async def economy_stats(interaction: discord.Interaction):
     await interaction.response.defer()
 
     total_supply = await economy.get_total_supply()
-    rate = await economy.get_current_rate()
+    cached_rate = await economy.get_cached_rate()
+    if cached_rate is not None:
+        rate = cached_rate
+    else:
+        rate = await economy.get_current_rate()
 
     embed = discord.Embed(title="経済統計", color=0x00ffff)
     embed.add_field(name="総発行EC", value=f"{total_supply:,.2f} EC", inline=False)
@@ -113,7 +125,11 @@ async def exchange(interaction: discord.Interaction, amount: float):
     if amount <= 0:
         return await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
 
-    rate = await economy.get_current_rate()
+    cached_rate = await economy.get_cached_rate()
+    if cached_rate is not None:
+        rate = cached_rate
+    else:
+        rate = await economy.get_current_rate()
     is_ok, remaining = await economy.check_exchange_limit(interaction.user.id, amount, rate)
 
     if not is_ok:
@@ -153,7 +169,11 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
     if amount <= 0:
         return await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
 
-    rate = await economy.get_current_rate()
+    cached_rate = await economy.get_cached_rate()
+    if cached_rate is not None:
+        rate = cached_rate
+    else:
+        rate = await economy.get_current_rate()
     base_cost = amount * rate
     fee = base_cost * 0.05
     total_money = base_cost + fee

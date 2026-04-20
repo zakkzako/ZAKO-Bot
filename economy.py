@@ -42,11 +42,41 @@ async def get_dynamic_base_pool():
         logger.error(f"API Fetch Error (BasePool): {e}")
     return 380300000
 
-async def get_current_rate():
-    """動的なベースプールを使用して最新レートを計算"""
+async def get_current_rate(force_refresh: bool = False):
+    """キャッシュ優先でレートを返す。
+    デフォルトでは DB(system_config.key='rate') に保存された値を優先して返す。
+    `force_refresh=True` の場合は常に動的に計算して返す（更新ループ用）。
+    フォールバックで動的計算を行う。"""
+    if not force_refresh:
+        try:
+            row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'rate'")
+            if row and row.get('value'):
+                try:
+                    return float(row['value'])
+                except Exception:
+                    logger.debug("Failed to parse cached rate; falling back to dynamic calculation")
+        except Exception as e:
+            logger.error(f"Failed to read cached rate: {e}")
+
+    # フォールバック／強制再計算: 動的計算
     total_supply = await get_total_supply()
     current_base = await get_dynamic_base_pool()
     return current_base / total_supply
+
+
+async def get_cached_rate():
+    """DBに保存されたキャッシュ値を返す。キャッシュが存在しない場合は None を返す。"""
+    try:
+        row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'rate'")
+        if row and row.get('value'):
+            try:
+                return float(row['value'])
+            except Exception:
+                logger.debug("Failed to parse cached rate")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to read cached rate: {e}")
+        return None
 
 async def check_takasumi_assets(user_id, required_amount):
     """本家APIで資産チェック（購入用：必要額の1.5倍あるか）"""
