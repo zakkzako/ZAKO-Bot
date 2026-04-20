@@ -2,7 +2,7 @@ import discord
 import datetime
 import jst
 import logging
-import database  
+import database
 
 JST = jst.get_jst()
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 async def announce_time(bot):
     """毎正時に実行される時報処理"""
-    
+
     # 現在時刻を取得
     now = datetime.datetime.now(JST)
 
@@ -32,18 +32,18 @@ async def announce_time(bot):
                 "SELECT value FROM system_config WHERE key = ?", 
                 ('announcement_channel',)
             )
-            
+
             # 設定が存在しない場合は終了
             if not row or not row['value']:
                 return
 
             # 保存されている ID（文字列）を整数に変換
             channel_id = int(row['value'])
-            
+
         except Exception as e:
             logger.error(f"Database Query Error (jikoku): {e}")
             return
-        
+
         # 4. メッセージ送信処理
         channel = bot.get_channel(channel_id)
         if channel:

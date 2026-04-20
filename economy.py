@@ -82,16 +82,16 @@ async def set_money(user_id, amount):
 async def process_work(user_id):
     """45分おきのEC獲得処理"""
     now = datetime.datetime.now()
-    
+
     row = await database.fetch_one("SELECT last_work FROM users WHERE user_id = ?", (user_id,))
-    
+
     if row and row['last_work']:
         last_time = datetime.datetime.fromisoformat(row['last_work'])
         if now < last_time + datetime.timedelta(minutes=45):
             return False, (last_time + datetime.timedelta(minutes=45) - now)
 
     reward = round(random.uniform(10, 20), 2)
-    
+
     current_supply = await get_total_supply()
     await set_total_supply(current_supply + reward)
 
@@ -108,7 +108,7 @@ async def collect_ec_for_exchange(user_id, amount_ec):
     """換金申請用：手数料10%を含めたECを即座に徴収する"""
     total_needed = amount_ec * 1.1
     row = await database.fetch_one("SELECT balance FROM users WHERE user_id = ?", (user_id,))
-    
+
     if not row or row['balance'] < total_needed:
         return False, 0
 
@@ -153,7 +153,7 @@ async def check_exchange_limit(user_id, amount_ec, current_rate):
 
     await database.execute_query("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     row = await database.fetch_one("SELECT daily_exchange_total, last_exchange_date FROM users WHERE user_id = ?", (user_id,))
-    
+
     daily_total = row['daily_exchange_total'] if row else 0.0
     last_date = row['last_exchange_date'] if row else ""
 
@@ -173,7 +173,7 @@ async def add_exchange_record(user_id, amount_ec, current_rate):
 
     await database.execute_query("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     row = await database.fetch_one("SELECT daily_exchange_total, last_exchange_date FROM users WHERE user_id = ?", (user_id,))
-    
+
     daily_total = row['daily_exchange_total'] if row else 0.0
     last_date = row['last_exchange_date'] if row else ""
 

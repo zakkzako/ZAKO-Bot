@@ -3,7 +3,6 @@ from discord import app_commands
 import blackjack
 import economy
 import database
-import datetime
 import jst
 
 JST = jst.get_jst()

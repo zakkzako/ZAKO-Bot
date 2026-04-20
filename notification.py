@@ -1,7 +1,5 @@
 import discord
 import datetime
-import requests
-import os
 import jst
 import re
 import logging
@@ -57,7 +55,7 @@ async def handle_work_detection(bot, message, embed):
 
     # 通知予約データの作成とDBへの保存
     target_time = now + datetime.timedelta(minutes=cd_min)
-    
+
     await database.execute_query(
         "INSERT INTO reminders (user_id, channel_id, target_time, cooldown_min, notification_type) VALUES (?, ?, ?, ?, ?)",
         (user.id, message.channel.id, target_time.isoformat(), cd_min, NOTIFICATION_TYPES.EXTERNAL_WORK)
@@ -112,7 +110,7 @@ async def handle_steal_detection(bot, message):
     logger.info(f"【{now.strftime('%Y/%m/%d %H:%M:%S')}】{user.name} のstealを検知")
 
     target_time = now + datetime.timedelta(hours=2)
-    
+
     # DBへの保存
     await database.execute_query(
         "INSERT INTO reminders (user_id, channel_id, target_time, cooldown_min, notification_type) VALUES (?, ?, ?, ?, ?)",

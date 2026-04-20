@@ -1,12 +1,9 @@
 import discord
-from discord import SyncWebhook
 from discord.ext import tasks, commands
 import importlib
 import os
 import httpx
 import asyncio
-import datetime
-import pytz
 from dotenv import load_dotenv
 import core_system
 import jst
