@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 import os
@@ -73,6 +74,7 @@ async def perform_full_update():
 
                 # GitHubのZIPはルートに「リポジトリ名-ブランチ名」のフォルダができるため、その中身を起点とする
                 extracted_root = os.path.join(temp_dir, os.listdir(temp_dir)[0])
+                updated_files = []
                 updated_files_count = 0
 
                 # 4. ファイルの差分チェックと上書きコピー
@@ -105,6 +107,7 @@ async def perform_full_update():
                         if needs_update:
                             shutil.copy2(ext_file_path, local_file_path)
                             logger.info(f"[Updater] Updated: {rel_path}")
+                            updated_files.append(rel_path)
                             updated_files_count += 1
 
         # 5. 最新のコミットハッシュを保存（次回以降の比較用）
@@ -112,7 +115,12 @@ async def perform_full_update():
             with open(".local_version", "w", encoding="utf-8") as f:
                 f.write(versions["remote"])
 
-        logger.info(f"[{log_time}] [Updater] ダウンロード完了。{updated_files_count}件のファイルを更新しました。/admin_reload で反映してください。")
+        asyncio.sleep(1)
+        if "main.py" in updated_files:
+            logger.warning(f"[{log_time}] [Updater] main.pyが更新されました。Botの再起動が必要な可能性があります。")
+        if any(f.startswith("commands/") for f in updated_files):
+            logger.warning(f"[{log_time}] [Updater] commands/ディレクトリ下のファイルが更新されました。Botの再起動が必要な可能性があります。")
+        logger.info(f"[{log_time}] [Updater] ダウンロード完了。{updated_files_count}件のファイルを更新しました。/admin reload で反映してください。")
         return True
 
     except Exception:
