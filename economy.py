@@ -50,7 +50,7 @@ async def get_current_rate(force_refresh: bool = False):
     if not force_refresh:
         try:
             row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'rate'")
-            if row and row.get('value'):
+            if row and row['value'] is not None:
                 try:
                     return float(row['value'])
                 except Exception:
@@ -68,7 +68,7 @@ async def get_cached_rate():
     """DBに保存されたキャッシュ値を返す。キャッシュが存在しない場合は None を返す。"""
     try:
         row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'rate'")
-        if row and row.get('value'):
+        if row and row['value'] is not None:
             try:
                 return float(row['value'])
             except Exception:
