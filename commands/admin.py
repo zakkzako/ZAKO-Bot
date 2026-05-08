@@ -20,6 +20,7 @@ def is_admin(user_id):
     return user_id in ADMIN_IDS if ADMIN_IDS else False
 
 ADMIN_GUILD_ID = 1455450215313309763
+ADMIN_GUILD = discord.Object(id=ADMIN_GUILD_ID)
 
 admin_group = app_commands.Group(name="admin", description="［ Bot 管理者専用 ］ 管理者用コマンド", guild_ids=[ADMIN_GUILD_ID])
 
@@ -204,6 +205,5 @@ async def db_download(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ エラーが発生しました: {e}")
 
 def setup_admin_commands(bot):
-    ADMIN_GUILD = discord.Object(id=ADMIN_GUILD_ID)
-    bot.tree.add_command(admin_group, override=True, guild=ADMIN_GUILD)
+    bot.tree.add_command(admin_group)
     bot.tree.sync(guild=ADMIN_GUILD)
