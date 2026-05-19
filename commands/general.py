@@ -8,6 +8,7 @@ JST = jst.get_jst()
 
 @app_commands.command(name="ping", description="Botの応答速度を確認します")
 async def ping(interaction: discord.Interaction):
+    msg_created = False
     try:
         raw_ping = interaction.client.latency * 1000
         start_time = time.perf_counter()
@@ -20,7 +21,10 @@ async def ping(interaction: discord.Interaction):
         embed.add_field(name="Message Latency", value=f"{message_latency:.2f}ms")
         await interaction.edit_original_response(content="", embed=embed)
     except Exception as e:
-        await interaction.response.send_message(f"エラーが発生しました: {e}")
+        if not msg_created:
+            await interaction.response.send_message(f"エラーが発生しました: {e}")
+        else:
+            await interaction.edit_original_response(content=f"エラーが発生しました: {e}", embed=None)
         logging.error(f"Error in ping command: {e}")
 
 def setup_general_commands(bot):
