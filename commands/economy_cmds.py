@@ -38,8 +38,6 @@ async def _schedule_work_notification(user_id: int, channel_id: int, cooldown_mi
 
 @app_commands.command(name="money", description="所持ECと TakasumiBOT コイン 換算額を確認します")
 async def money(interaction: discord.Interaction):
-    await interaction.response.defer()
-
     row = await database.fetch_one(
         "SELECT balance FROM users WHERE user_id = ?",
         (interaction.user.id,)
@@ -62,25 +60,21 @@ async def money(interaction: discord.Interaction):
         inline=True
     )
 
-    await interaction.followup.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 
 @app_commands.command(name="rate", description="現在の1ECあたりの価値を確認します")
 async def rate(interaction: discord.Interaction):
-    await interaction.response.defer()
-
     cached_rate = await economy.get_cached_rate()
     if cached_rate is not None:
         r = cached_rate
     else:
         r = await economy.get_current_rate()
-    await interaction.followup.send(f"📈 現在の換金レート: **1 EC = {r:.4f} コイン**")
+    await interaction.response.send_message(f"📈 現在の換金レート: **1 EC = {r:.4f} コイン**")
 
 
 @app_commands.command(name="economy", description="経済システムの統計情報を確認します")
 async def economy_stats(interaction: discord.Interaction):
-    await interaction.response.defer()
-
     total_supply = await economy.get_total_supply()
     cached_rate = await economy.get_cached_rate()
     if cached_rate is not None:
@@ -92,17 +86,15 @@ async def economy_stats(interaction: discord.Interaction):
     embed.add_field(name="総発行EC", value=f"{total_supply:,.2f} EC", inline=False)
     embed.add_field(name="交換レート", value=f"1 EC = {rate:.4f} Money", inline=False)
 
-    await interaction.followup.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 
 @app_commands.command(name="ec_work", description="ECを獲得します（45分に1回）")
 async def ec_work(interaction: discord.Interaction):
-    await interaction.response.defer()
-
     success, res = await economy.process_work(interaction.user.id)
 
     if success:
-        await interaction.followup.send(
+        await interaction.response.send_message(
             f"⛏ **{res} EC** を獲得しました！\n"
             f"{WORK_COOLDOWN_MINUTES}分後に `/ec_work` が再度利用可能になったタイミングで通知を送ります。"
         )
@@ -111,7 +103,7 @@ async def ec_work(interaction: discord.Interaction):
         min_left = int(res.total_seconds() // 60)
         await _schedule_work_notification(interaction.user.id, interaction.channel_id, min_left)
 
-        await interaction.followup.send(
+        await interaction.response.send_message(
             f"クールタイム中 あと {min_left}分 お待ちください。\n"
             f"{min_left}分後にこのチャンネルで通知します。",
             ephemeral=True
@@ -120,10 +112,8 @@ async def ec_work(interaction: discord.Interaction):
 
 @app_commands.command(name="exchange", description="ECを換金申請します（1日2万Moneyまで）")
 async def exchange(interaction: discord.Interaction, amount: float):
-    await interaction.response.defer()
-
-    if amount <= 0:
-        return await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
+    if amount <= 1:
+        return await interaction.response.send_message("金額は **1EC以上** にしてください。", ephemeral=True)
 
     cached_rate = await economy.get_cached_rate()
     if cached_rate is not None:
@@ -133,11 +123,12 @@ async def exchange(interaction: discord.Interaction, amount: float):
     is_ok, remaining = await economy.check_exchange_limit(interaction.user.id, amount, rate)
 
     if not is_ok:
-        return await interaction.followup.send(f"❌ 上限オーバーです。本日の残り枠: {remaining:.0f} Money")
+        return await interaction.response.send_message(f"❌ 上限オーバーです。本日の残り枠: {remaining:.0f} Money")
 
     success, _ = await economy.collect_ec_for_exchange(interaction.user.id, amount)
-
     if success:
+        await interaction.response.defer()
+
         await economy.add_exchange_record(interaction.user.id, amount, rate)
 
         row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'log_channel'")
@@ -159,15 +150,13 @@ async def exchange(interaction: discord.Interaction, amount: float):
         await interaction.followup.send(embed=embed)
 
     else:
-        await interaction.followup.send("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
+        await interaction.response.send_message("❌ ECが不足しています（手数料10%が必要です）", ephemeral=True)
 
 
 @app_commands.command(name="buy_ec", description="Takasumi moneyでECを購入申請します（手数料5%）")
 async def buy_ec(interaction: discord.Interaction, amount: float):
-    await interaction.response.defer()
-
-    if amount <= 0:
-        return await interaction.followup.send("金額は0より大きくしてください。", ephemeral=True)
+    if amount <= 1:
+        return await interaction.responce.send_message("金額は **1EC以上** にしてください。", ephemeral=True)
 
     cached_rate = await economy.get_cached_rate()
     if cached_rate is not None:
@@ -180,11 +169,13 @@ async def buy_ec(interaction: discord.Interaction, amount: float):
 
     has_assets, _ = await economy.check_takasumi_assets(interaction.user.id, base_cost)
     if not has_assets:
-        return await interaction.followup.send(
-            f"❌ Takasumi moneyが不足しています。\n"
+        return await interaction.response.send_message(
+            f"❌ TakasumiBOT コイン が不足しています。\n"
             f"（1.5倍必要: {base_cost * 1.5:,.0f} Money）",
             ephemeral=True
         )
+
+    await interaction.response.defer()
 
     row = await database.fetch_one("SELECT value FROM system_config WHERE key = 'log_channel'")
     ch_id = int(row['value']) if row else None
